@@ -1,0 +1,22 @@
+[project]
+  name            = "operator-cli"
+  version         = "0.1.0"
+  description     = "Add your description here"
+  readme          = "README.md"
+  requires-python = ">=3.14"
+  dependencies    = ["operator-core"]
+
+  [project.scripts]
+    operator = "operator_cli.main:main"
+
+[build-system]
+  requires      = ["uv_build>=0.9.8,<0.10.0"]
+  build-backend = "uv_build"
+
+[tool.uv.sources]
+  operator-core = { workspace = true }
+
+[tool.uv.build-backend]
+  module-root    = "src"
+  source-exclude = ["*.test.py", "tests"]
+  wheel-exclude  = ["*.test.py", "tests"]

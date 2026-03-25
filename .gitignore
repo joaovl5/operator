@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+reports/
+.venv
+
+# Nix
+.direnv
+/.pre-commit-config.yaml
+result
