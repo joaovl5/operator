@@ -4,7 +4,7 @@
   description     = "Add your description here"
   readme          = "README.md"
   requires-python = ">=3.14"
-  dependencies    = ["operator-core"]
+  dependencies    = ["operator-core", "attrs"]
 
   [project.scripts]
     operator = "operator_cli.main:main"
