@@ -3,7 +3,7 @@
 import argparse
 from collections.abc import Callable, Sequence
 
-from operator_cli.openai_auth import run_openai_login, run_openai_logout, run_openai_status
+from operator_cli.auth.main import run_openai_login, run_openai_logout, run_openai_status
 
 type Handler = Callable[[argparse.Namespace], int]
 

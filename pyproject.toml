@@ -124,5 +124,5 @@
   asyncio_mode   = "auto"
   filterwarnings = ["error", "ignore::DeprecationWarning"]
   python_files   = ["*.test.py", "test_*.py"]
-  testpaths      = ["pkgs/operator-core/src", "pkgs/operator-cli/src", "pkgs/operator-core/tests", "pkgs/operator-cli/tests"]
+  testpaths      = ["pkgs/operator-core/src", "pkgs/operator-cli/src"]
   xfail_strict   = true

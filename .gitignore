@@ -7,8 +7,8 @@ wheels/
 *.egg-info
 reports/
 .venv
+.pre-commit-config.yaml
 
 # Nix
 .direnv
-/.pre-commit-config.yaml
 result
