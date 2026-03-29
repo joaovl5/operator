@@ -1,11 +1,10 @@
 """Reusable JSON-backed credential store APIs."""
 
-import json
 import os
 import time
 from typing import TYPE_CHECKING, Self
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from .errors import JsonCredentialStoreCorruptionError, JsonCredentialStoreTransactionError
 from .types import LockSnapshot
@@ -44,13 +43,13 @@ class JsonCredentialStore[CredentialT: BaseModel]:
             raise self._build_corruption_error(message=message) from error
 
         try:
-            payload = json.loads(raw_text)
-        except json.JSONDecodeError as error:
+            payload_object = TypeAdapter(object).validate_json(raw_text)
+        except ValidationError as error:
             message = f"credentials at {self.path} are malformed"
             raise self._build_corruption_error(message=message) from error
 
         try:
-            return self._model_type.model_validate(payload)
+            return self._model_type.model_validate(payload_object)
         except ValidationError as error:
             message = f"credentials at {self.path} are missing required fields"
             raise self._build_corruption_error(message=message) from error

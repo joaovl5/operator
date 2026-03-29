@@ -1,59 +1,70 @@
 """OpenAI provider configuration, client helpers, and OAuth APIs."""
 
-from . import oauth as _oauth
-from .client import (
+from .client import BaseOpenAIModelProvider, OpenAIModelProvider, get_openai_client
+from .oauth import (
+    # OAuth protocol
+    AUTH_ERROR_CODES,
+    AUTH_ERROR_NAMES,
+    # ChatGPT client helpers
     CHATGPT_CODEX_BASE_URL,
+    # OAuth manager
     DEFAULT_REFRESH_BUFFER_MS,
     MISSING_CREDENTIALS_MESSAGE,
+    OPENAI_OAUTH_AUTHORIZE_ENDPOINT,
+    # OAuth payload models
+    OPENAI_OAUTH_CLIENT_ID,
+    OPENAI_OAUTH_REDIRECT_URI,
+    OPENAI_OAUTH_SCOPE,
+    OPENAI_OAUTH_TOKEN_ENDPOINT,
     OPERATOR_ORIGINATOR,
     REFRESH_REJECTED_MESSAGE,
+    RELOGIN_REQUIRED_MESSAGE,
     REMOVED_CREDENTIALS_MESSAGE,
-    OpenAIModelProvider,
-    build_chatgpt_oauth_client,
-    get_openai_client,
-    oauth_responses_settings,
-)
-from .errors import (
+    STATE_MISMATCH_MESSAGE,
+    TOKEN_REQUEST_INVALID_JSON_MESSAGE,
+    TOKEN_REQUEST_MISSING_FIELDS_MESSAGE,
+    TOKEN_RESPONSE_MISSING_REFRESH_MESSAGE,
+    AuthorizeRequest,
+    OpenAIOAuthCredentials,
     OpenAIOAuthError,
-    OpenAIOAuthModelConstraintError,
+    OpenAIOAuthManager,
+    OpenAIOAuthManagerProtocol,
+    # OAuth configuration models
+    OpenAIOAuthModelConfig,
+    # OAuth provider
+    OpenAIOAuthModelProvider,
+    OpenAIOAuthModelSettings,
     OpenAIOAuthProtocolError,
     OpenAIOAuthReauthRequiredError,
-    OpenAIOAuthSettingsConstraintError,
     OpenAIOAuthStateMismatchError,
+    # Storage
+    OpenAIOAuthStore,
     OpenAIOAuthStoreCorruptionError,
     OpenAIOAuthStoreError,
+    # Errors
     OpenAIProviderError,
-)
-from .oauth import (
-    OpenAIOAuthManager,
-    OpenAIOAuthModelProvider,
-    OpenAIOAuthStore,
-    build_authorize_url,
-    build_pkce_verifier_and_challenge,
-    default_openai_oauth_credentials_path,
-    exchange_authorization_code,
-    extract_account_id,
-    generate_oauth_state,
-    refresh_access_token,
-    validate_oauth_state,
-)
-from .types import (
-    AuthorizeRequest,
-    OpenAIModelConfig,
-    OpenAIModelSettings,
-    OpenAIOAuthCredentials,
     OpenAITokenResponse,
     RefreshTokenRequest,
     TokenExchangeRequest,
+    # JWT helpers
+    add_base64_padding,
+    build_authorize_url,
+    build_chatgpt_oauth_client,
+    build_pkce_verifier_and_challenge,
+    decode_jwt_payload,
+    default_openai_oauth_credentials_path,
+    exchange_authorization_code,
+    extract_account_id_from_id_token,
+    generate_oauth_state,
+    oauth_responses_settings,
+    refresh_access_token,
+    validate_oauth_state,
 )
-
-OPENAI_OAUTH_AUTHORIZE_ENDPOINT = _oauth.OPENAI_OAUTH_AUTHORIZE_ENDPOINT
-OPENAI_OAUTH_CLIENT_ID = _oauth.OPENAI_OAUTH_CLIENT_ID
-OPENAI_OAUTH_REDIRECT_URI = _oauth.OPENAI_OAUTH_REDIRECT_URI
-OPENAI_OAUTH_SCOPE = _oauth.OPENAI_OAUTH_SCOPE
-OPENAI_OAUTH_TOKEN_ENDPOINT = _oauth.OPENAI_OAUTH_TOKEN_ENDPOINT
+from .types import OpenAIModelConfig, OpenAIModelSettings
 
 __all__ = [
+    "AUTH_ERROR_CODES",
+    "AUTH_ERROR_NAMES",
     "CHATGPT_CODEX_BASE_URL",
     "DEFAULT_REFRESH_BUFFER_MS",
     "MISSING_CREDENTIALS_MESSAGE",
@@ -64,19 +75,26 @@ __all__ = [
     "OPENAI_OAUTH_TOKEN_ENDPOINT",
     "OPERATOR_ORIGINATOR",
     "REFRESH_REJECTED_MESSAGE",
+    "RELOGIN_REQUIRED_MESSAGE",
     "REMOVED_CREDENTIALS_MESSAGE",
+    "STATE_MISMATCH_MESSAGE",
+    "TOKEN_REQUEST_INVALID_JSON_MESSAGE",
+    "TOKEN_REQUEST_MISSING_FIELDS_MESSAGE",
+    "TOKEN_RESPONSE_MISSING_REFRESH_MESSAGE",
     "AuthorizeRequest",
+    "BaseOpenAIModelProvider",
     "OpenAIModelConfig",
     "OpenAIModelProvider",
     "OpenAIModelSettings",
     "OpenAIOAuthCredentials",
     "OpenAIOAuthError",
     "OpenAIOAuthManager",
-    "OpenAIOAuthModelConstraintError",
+    "OpenAIOAuthManagerProtocol",
+    "OpenAIOAuthModelConfig",
     "OpenAIOAuthModelProvider",
+    "OpenAIOAuthModelSettings",
     "OpenAIOAuthProtocolError",
     "OpenAIOAuthReauthRequiredError",
-    "OpenAIOAuthSettingsConstraintError",
     "OpenAIOAuthStateMismatchError",
     "OpenAIOAuthStore",
     "OpenAIOAuthStoreCorruptionError",
@@ -85,12 +103,14 @@ __all__ = [
     "OpenAITokenResponse",
     "RefreshTokenRequest",
     "TokenExchangeRequest",
+    "add_base64_padding",
     "build_authorize_url",
     "build_chatgpt_oauth_client",
     "build_pkce_verifier_and_challenge",
+    "decode_jwt_payload",
     "default_openai_oauth_credentials_path",
     "exchange_authorization_code",
-    "extract_account_id",
+    "extract_account_id_from_id_token",
     "generate_oauth_state",
     "get_openai_client",
     "oauth_responses_settings",

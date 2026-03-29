@@ -90,3 +90,21 @@ def test_run_openai_logout_clears_missing_store_without_error(tmp_path) -> None:
 
     assert result == 0
     assert "not found" in "\n".join(output_lines).lower()
+
+def test_run_openai_status_and_logout_handle_corrupt_store(tmp_path) -> None:
+    """Status reports corrupt auth files and logout removes them cleanly."""
+    auth_main = load_auth_main()
+    path = tmp_path / "corrupt.json"
+    _ = path.write_text("{", encoding="utf-8")
+    store = OpenAIOAuthStore(path=path)
+    status_output: list[str] = []
+    logout_output: list[str] = []
+
+    status_result = auth_main.run_openai_status(store=store, output=status_output.append)
+    logout_result = auth_main.run_openai_logout(store=store, output=logout_output.append)
+
+    assert status_result == 1
+    assert "could not read stored login" in "\n".join(status_output).lower()
+    assert logout_result == 0
+    assert path.exists() is False
+    assert "unreadable" in "\n".join(logout_output).lower()

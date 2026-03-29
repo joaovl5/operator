@@ -45,11 +45,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Parse CLI arguments and dispatch to the selected command handler."""
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
-    handler = getattr(args, "handler", None)
-    if handler is None:
-        parser.print_help()
-        return 1
-    return handler(args)
+    command_id = getattr(args, "command_id", None)
+    match command_id:
+        case "auth.openai.login":
+            return _handle_openai_login(args)
+        case "auth.openai.logout":
+            return _handle_openai_logout(args)
+        case "auth.openai.status":
+            return _handle_openai_status(args)
+        case _:
+            parser.print_help()
+            return 1
 
 
 def _handle_openai_login(_args: argparse.Namespace) -> int:

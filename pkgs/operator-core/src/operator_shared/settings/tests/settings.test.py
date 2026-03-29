@@ -5,52 +5,29 @@ from pydantic import ValidationError
 
 from operator_shared.settings.errors import OperatorSettingsLoadError
 from operator_shared.settings.main import (
+    DEFAULT_CALLBACK_PORT,
     CallbackSettings,
     OAuthSettings,
     OperatorSettings,
     load_operator_settings,
-)
+ )
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-
-DEFAULT_BIND_HOST = "0.0.0.0"  # noqa: S104
-DEFAULT_CALLBACK_PORT = 1455
-DEFAULT_REFRESH_BUFFER_MS = 60_000
-CUSTOM_REFRESH_BUFFER_MS = 30_000
-
 
 def test_callback_settings_defaults_match_local_oauth_flow() -> None:
     """Callback settings expose the local OAuth defaults."""
     callback = CallbackSettings()
 
-    assert callback.host == DEFAULT_BIND_HOST
     assert callback.port == DEFAULT_CALLBACK_PORT
     assert callback.path == "/auth/callback"
-    assert callback.host_uri == "localhost"
     assert callback.redirect_uri() == "http://localhost:1455/auth/callback"
-
-
-def test_callback_settings_bind_host_does_not_override_redirect_host() -> None:
-    """Redirect generation keeps the localhost URI default."""
-    callback = CallbackSettings(host=DEFAULT_BIND_HOST)
-
-    assert callback.redirect_uri() == "http://localhost:1455/auth/callback"
-
-
-def test_callback_settings_prefers_explicit_host_uri_for_redirects() -> None:
-    """An explicit URI host takes precedence over the bind host."""
-    callback = CallbackSettings(host=DEFAULT_BIND_HOST, host_uri="operator.internal")
-
-    assert callback.redirect_uri() == "http://operator.internal:1455/auth/callback"
 
 
 def test_oauth_settings_defaults_include_callback_defaults() -> None:
     """OAuth defaults embed the callback defaults."""
     oauth = OAuthSettings()
 
-    assert oauth.refresh_buffer_ms == DEFAULT_REFRESH_BUFFER_MS
     assert oauth.callback == CallbackSettings()
 
 
@@ -66,27 +43,34 @@ def test_load_operator_settings_reads_optional_operator_toml(tmp_path: Path) -> 
     path = tmp_path / "operator.toml"
     _ = path.write_text(
         """
-[oauth]
-refresh_buffer_ms = 30000
-
 [oauth.callback]
-host = "0.0.0.0"
 port = 9999
 path = "/oauth/callback"
-host_uri = "127.0.0.1.nip.io"
 """.strip(),
         encoding="utf-8",
     )
 
     settings = load_operator_settings(path=path)
-
-    assert settings.oauth.refresh_buffer_ms == CUSTOM_REFRESH_BUFFER_MS
     assert settings.oauth.callback == CallbackSettings(
-        host=DEFAULT_BIND_HOST,
         port=9999,
         path="/oauth/callback",
-        host_uri="127.0.0.1.nip.io",
     )
+
+
+def test_load_operator_settings_rejects_legacy_callback_keys(tmp_path: Path) -> None:
+    """Legacy callback keys are rejected after the refactor cutover."""
+    path = tmp_path / "operator.toml"
+    _ = path.write_text(
+        """
+[oauth.callback]
+host = "0.0.0.0"
+host_uri = "legacy.localhost"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValidationError, match="host"):
+        _ = load_operator_settings(path=path)
 
 
 def test_load_operator_settings_raises_dedicated_error_for_invalid_toml(tmp_path: Path) -> None:
@@ -103,11 +87,46 @@ def test_load_operator_settings_preserves_pydantic_validation_errors(tmp_path: P
     path = tmp_path / "operator.toml"
     _ = path.write_text(
         """
-[oauth]
-refresh_buffer_ms = "soon"
+[oauth.callback]
+port = "soon"
 """.strip(),
         encoding="utf-8",
     )
 
-    with pytest.raises(ValidationError, match="refresh_buffer_ms"):
+    with pytest.raises(ValidationError, match="port"):
         _ = load_operator_settings(path=path)
+
+
+def test_callback_settings_rejects_unsupported_port_and_path_shapes() -> None:
+    """Callback settings reject unsupported port and path values."""
+    with pytest.raises(ValidationError, match="port"):
+        _ = CallbackSettings(port=70_000)
+
+    with pytest.raises(ValidationError, match="path"):
+        _ = CallbackSettings(path="auth/callback")
+
+    with pytest.raises(ValidationError, match="path"):
+        _ = CallbackSettings(path="/auth/callback?code=1")
+
+    with pytest.raises(ValidationError, match="path"):
+        _ = CallbackSettings(path="/auth/callback with space")
+
+def test_callback_settings_validator_rejects_non_mapping_input() -> None:
+    """Non-dict callback values now validate as errors instead of crashing."""
+    with pytest.raises(ValidationError):
+        _ = OperatorSettings.model_validate(
+            {
+                "oauth": {
+                    "callback": "bad-input",
+                }
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        _ = OperatorSettings.model_validate(
+            {
+                "oauth": {
+                    "callback": ["bad", "input"],
+                }
+            }
+        )

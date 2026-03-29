@@ -7,34 +7,37 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from operator_core.providers.openai import (
-    OPENAI_OAUTH_AUTHORIZE_ENDPOINT,
-    OPENAI_OAUTH_CLIENT_ID,
-    OPENAI_OAUTH_REDIRECT_URI,
-    OPENAI_OAUTH_SCOPE,
-    AuthorizeRequest,
-    OpenAIOAuthCredentials,
+from operator_core.providers.openai.errors import (
     OpenAIOAuthProtocolError,
     OpenAIOAuthReauthRequiredError,
     OpenAIOAuthStateMismatchError,
-    OpenAIOAuthStore,
     OpenAIOAuthStoreCorruptionError,
-    OpenAITokenResponse,
-    RefreshTokenRequest,
-    TokenExchangeRequest,
+)
+from operator_core.providers.openai.oauth.jwt import extract_account_id_from_id_token
+from operator_core.providers.openai.oauth.protocol import (
+    OPENAI_OAUTH_AUTHORIZE_ENDPOINT,
+    OPENAI_OAUTH_REDIRECT_URI,
     build_authorize_url,
     build_pkce_verifier_and_challenge,
     exchange_authorization_code,
-    extract_account_id,
     generate_oauth_state,
     refresh_access_token,
     validate_oauth_state,
+)
+from operator_core.providers.openai.oauth.store import OpenAIOAuthStore
+from operator_core.providers.openai.oauth.types import (
+    OPENAI_OAUTH_CLIENT_ID,
+    OPENAI_OAUTH_SCOPE,
+    AuthorizeRequest,
+    OpenAIOAuthCredentials,
+    OpenAITokenResponse,
+    RefreshTokenRequest,
+    TokenExchangeRequest,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
-
 
 ACCESS_TOKEN = "oauth-access-token"  # noqa: S105
 REFRESH_TOKEN = "oauth-refresh-token"  # noqa: S105
@@ -114,7 +117,7 @@ def test_extract_account_id_prefers_chatgpt_claim() -> None:
     """Account extraction prefers the ChatGPT-specific claim when both exist."""
     token = make_jwt({"account_id": "acct-fallback", "chatgpt_account_id": "acct-123"})
 
-    assert extract_account_id(token) == "acct-123"
+    assert extract_account_id_from_id_token(token) == "acct-123"
 
 
 def test_oauth_request_models_validate_required_fields() -> None:
@@ -149,6 +152,34 @@ def test_credentials_helpers_report_expiration_boundaries() -> None:
     assert credentials.expires_within(now_ms=1_500, buffer_ms=500) is True
 
 
+def test_openai_token_response_uses_shared_account_id_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Token credential conversion delegates account extraction to the shared JWT helper."""
+    seen_tokens: list[str | None] = []
+
+    def fake_extract_account_id(id_token: str | None) -> str | None:
+        seen_tokens.append(id_token)
+        return "acct-123"
+
+    monkeypatch.setattr(
+        "operator_core.providers.openai.oauth.types.extract_account_id_from_id_token",
+        fake_extract_account_id,
+    )
+
+    response = OpenAITokenResponse(
+        access_token=ACCESS_TOKEN,
+        refresh_token=REFRESH_TOKEN,
+        id_token=make_jwt({"chatgpt_account_id": "acct-123"}),
+        expires_in=60,
+    )
+
+    credentials = response.to_credentials(now_ms=2_000)
+
+    assert credentials.account_id == "acct-123"
+    assert seen_tokens == [response.id_token]
+
+
 def test_generate_and_validate_oauth_state_use_public_helpers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -160,7 +191,7 @@ def test_generate_and_validate_oauth_state_use_public_helpers(
         return STATE
 
     monkeypatch.setattr(
-        "operator_core.providers.openai.oauth.secrets.token_urlsafe",
+        "operator_core.providers.openai.oauth.protocol.secrets.token_urlsafe",
         fake_token_urlsafe,
     )
 
@@ -172,7 +203,7 @@ def test_generate_and_validate_oauth_state_use_public_helpers(
         _ = validate_oauth_state(received_state="wrong-state", pending_state=STATE)
 
 
-def exchange_with_client(client: httpx.Client) -> OpenAITokenResponse:
+def generate_with_client(client: httpx.Client) -> OpenAITokenResponse:
     """Exchange an authorization code using the provided HTTP client."""
     return exchange_authorization_code(
         code=CODE,
@@ -193,7 +224,7 @@ def refresh_with_client(client: httpx.Client) -> OpenAITokenResponse:
     ("operation", "expected_body"),
     [
         pytest.param(
-            exchange_with_client,
+            generate_with_client,
             {
                 "grant_type": ["authorization_code"],
                 "code": [CODE],
@@ -262,6 +293,29 @@ def test_token_response_to_credentials_preserves_previous_refresh_token() -> Non
     assert credentials.expires_at_ms == EXPECTED_EXPIRES_AT_MS
 
 
+def test_token_response_to_credentials_preserves_previous_account_id_on_refresh_without_id_token() -> (
+    None
+):
+    """Refresh responses preserve account_id when no new id_token is returned."""
+    previous = OpenAIOAuthCredentials(
+        access_token="old-access-token",  # noqa: S106
+        refresh_token=REFRESH_TOKEN,
+        account_id="acct-previous",
+        expires_at_ms=1_000,
+    )
+    response = OpenAITokenResponse(
+        access_token=ACCESS_TOKEN,
+        refresh_token=REFRESH_TOKEN,
+        expires_in=60,
+    )
+
+    credentials = response.to_credentials(now_ms=2_000, previous_credentials=previous)
+
+    assert credentials.account_id == "acct-previous"
+    assert credentials.refresh_token == REFRESH_TOKEN
+    assert credentials.expires_at_ms == EXPECTED_EXPIRES_AT_MS
+
+
 @pytest.mark.parametrize(
     ("operation", "kwargs"),
     [
@@ -273,7 +327,10 @@ def test_token_response_to_credentials_preserves_previous_refresh_token() -> Non
         pytest.param(refresh_access_token, {"refresh_token": REFRESH_TOKEN}, id="refresh"),
     ],
 )
-def test_token_operations_map_auth_failures_to_relogin_errors(operation, kwargs) -> None:
+def test_token_operations_map_auth_failures_to_relogin_errors(
+    operation,
+    kwargs,
+) -> None:
     """Focused auth failures surface as re-login errors for both token operations."""
 
     def handler(request: httpx.Request) -> httpx.Response:

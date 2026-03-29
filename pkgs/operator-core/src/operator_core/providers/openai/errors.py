@@ -8,25 +8,6 @@ class OpenAIProviderError(ProviderError):
     """Base error for OpenAI provider operations."""
 
 
-class OpenAIOAuthModelConstraintError(OpenAIProviderError):
-    """Raised when an OAuth provider receives an unsupported model name."""
-
-
-class OpenAIOAuthSettingsConstraintError(OpenAIProviderError):
-    """Raised when an OAuth provider receives unsupported response settings."""
-
-
-class OpenAIOAuthStoreError(RuntimeError):
-    """Base OpenAI OAuth store error."""
-
-
-class OpenAIOAuthStoreCorruptionError(
-    OpenAIOAuthStoreError,
-    JsonCredentialStoreCorruptionError,
-):
-    """Raised when stored OpenAI OAuth credentials cannot be decoded."""
-
-
 class OpenAIOAuthError(RuntimeError):
     """Base OAuth error for Operator-owned OpenAI auth helpers."""
 
@@ -43,12 +24,21 @@ class OpenAIOAuthStateMismatchError(OpenAIOAuthError):
     """Raised when an OAuth callback returns an unexpected state value."""
 
 
+class OpenAIOAuthStoreError(RuntimeError):
+    """Base OpenAI OAuth store error."""
+
+
+class OpenAIOAuthStoreCorruptionError(
+    OpenAIOAuthStoreError,
+    JsonCredentialStoreCorruptionError,
+):
+    """Raised when stored OpenAI OAuth credentials cannot be decoded."""
+
+
 __all__ = [
     "OpenAIOAuthError",
-    "OpenAIOAuthModelConstraintError",
     "OpenAIOAuthProtocolError",
     "OpenAIOAuthReauthRequiredError",
-    "OpenAIOAuthSettingsConstraintError",
     "OpenAIOAuthStateMismatchError",
     "OpenAIOAuthStoreCorruptionError",
     "OpenAIOAuthStoreError",

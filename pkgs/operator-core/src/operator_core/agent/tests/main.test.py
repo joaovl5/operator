@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, get_args, get_origin, get_type_hints
+from typing import TYPE_CHECKING, get_args, get_origin, get_type_hints, override
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
@@ -27,6 +27,7 @@ class FakeModel(Model):
         super().__init__()
         self._model_name: str = model_name
 
+    @override
     async def request(
         self,
         messages: list[ModelMessage],
@@ -38,11 +39,13 @@ class FakeModel(Model):
         raise NotImplementedError
 
     @property
+    @override
     def model_name(self) -> str:
         """Return the stored fake model name."""
         return self._model_name
 
     @property
+    @override
     def system(self) -> str:
         """Return a stable provider label for the fake model."""
         return "test"
@@ -53,6 +56,7 @@ class FakeProvider(ModelProvider[FakeConfig]):
         """Collect configs passed to `build_model`."""
         self.seen_configs: list[FakeConfig] = []
 
+    @override
     def build_model(self, *, model_config: FakeConfig) -> Model:
         """Build a fake model and record the config used."""
         self.seen_configs.append(model_config)
