@@ -24,7 +24,7 @@
   include                           = ["pkgs/operator-cli/src", "pkgs/operator-core/src"]
   exclude                           = ["**/__pycache__", "**/node_modules"]
   typeCheckingMode                  = "recommended"
-  failOnWarnings                   = true
+  failOnWarnings                    = true
   enableReachabilityAnalysis        = true
   analyzeUnannotatedFunctions       = false
   reportExplicitAny                 = true
