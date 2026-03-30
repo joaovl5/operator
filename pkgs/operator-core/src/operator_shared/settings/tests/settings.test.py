@@ -15,7 +15,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-DEFAULT_BIND_HOST = "0.0.0.0"  # noqa: S104
+DEFAULT_BIND_HOST = "127.0.0.1"
+EXPLICIT_BIND_HOST = "0.0.0.0"  # noqa: S104
 DEFAULT_CALLBACK_PORT = 1455
 DEFAULT_REFRESH_BUFFER_MS = 60_000
 CUSTOM_REFRESH_BUFFER_MS = 30_000
@@ -34,14 +35,14 @@ def test_callback_settings_defaults_match_local_oauth_flow() -> None:
 
 def test_callback_settings_bind_host_does_not_override_redirect_host() -> None:
     """Redirect generation keeps the localhost URI default."""
-    callback = CallbackSettings(host=DEFAULT_BIND_HOST)
+    callback = CallbackSettings(host=EXPLICIT_BIND_HOST)
 
     assert callback.redirect_uri() == "http://localhost:1455/auth/callback"
 
 
 def test_callback_settings_prefers_explicit_host_uri_for_redirects() -> None:
     """An explicit URI host takes precedence over the bind host."""
-    callback = CallbackSettings(host=DEFAULT_BIND_HOST, host_uri="operator.internal")
+    callback = CallbackSettings(host=EXPLICIT_BIND_HOST, host_uri="operator.internal")
 
     assert callback.redirect_uri() == "http://operator.internal:1455/auth/callback"
 
@@ -82,7 +83,7 @@ host_uri = "127.0.0.1.nip.io"
 
     assert settings.oauth.refresh_buffer_ms == CUSTOM_REFRESH_BUFFER_MS
     assert settings.oauth.callback == CallbackSettings(
-        host=DEFAULT_BIND_HOST,
+        host=EXPLICIT_BIND_HOST,
         port=9999,
         path="/oauth/callback",
         host_uri="127.0.0.1.nip.io",

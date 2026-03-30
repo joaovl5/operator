@@ -207,6 +207,8 @@ class _LocalhostCallbackListener:
         self._thread.join(timeout=1)
 
     def set_payload(self, payload: CallbackPayload) -> None:
+        if self._state.payload is not None:
+            return
         self._state.payload = payload
         self._state.payload_ready.set()
 

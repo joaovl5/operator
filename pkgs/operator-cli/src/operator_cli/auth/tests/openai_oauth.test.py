@@ -1,4 +1,6 @@
+import http.client
 import importlib
+import socket
 from typing import TYPE_CHECKING, final
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -44,6 +46,7 @@ CALLBACK_CODE = "callback-code"
 MANUAL_CODE = "manual-code"
 CALLBACK_TIMEOUT_SECONDS = 7
 BIND_HOST = "0.0.0.0"  # noqa: S104
+HTTP_OK = 200
 
 
 def make_settings(*, host: str = BIND_HOST, host_uri: str = "localhost") -> OperatorSettings:
@@ -64,6 +67,26 @@ def make_callback_url(*, code: str, state: str, settings: OperatorSettings) -> s
     """Build a callback URL matching the configured redirect URI."""
     query = urlencode({"code": code, "state": state})
     return f"{settings.oauth.callback.redirect_uri()}?{query}"
+
+
+def reserve_callback_port(*, host: str) -> int:
+    """Reserve a free TCP port for the callback listener test."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener_socket:
+        listener_socket.bind((host, 0))
+        return listener_socket.getsockname()[1]
+
+
+def send_callback_request(*, host: str, port: int, path: str, payload: CallbackPayload) -> int:
+    """Send a real callback request to the local listener."""
+    connection = http.client.HTTPConnection(host, port, timeout=2)
+    try:
+        callback_query = urlencode({"code": payload.code, "state": payload.state})
+        connection.request("GET", f"{path}?{callback_query}")
+        response = connection.getresponse()
+        _ = response.read()
+        return response.status
+    finally:
+        connection.close()
 
 
 @final
@@ -425,6 +448,45 @@ def test_parse_callback_url_and_state_validation_reject_invalid_values() -> None
 
     with pytest.raises(CallbackStateMismatchError):
         _ = openai_oauth.validate_callback_payload(payload, pending_state="wrong-state")
+
+
+def test_callback_listener_keeps_first_valid_payload() -> None:
+    """The listener keeps the first valid callback payload it receives."""
+    openai_oauth = load_openai_oauth()
+    callback_host = "127.0.0.1"
+    settings = make_settings(host=callback_host)
+    callback_path = settings.oauth.callback.path
+    callback_port = reserve_callback_port(host=callback_host)
+    listener = openai_oauth.create_callback_listener(
+        host=callback_host,
+        port=callback_port,
+        path=callback_path,
+    )
+    first_payload = CallbackPayload(code="first-code", state="first-state")
+    second_payload = CallbackPayload(code="second-code", state="second-state")
+
+    try:
+        assert (
+            send_callback_request(
+                host=callback_host,
+                port=callback_port,
+                path=callback_path,
+                payload=first_payload,
+            )
+            == HTTP_OK
+        )
+        assert (
+            send_callback_request(
+                host=callback_host,
+                port=callback_port,
+                path=callback_path,
+                payload=second_payload,
+            )
+            == HTTP_OK
+        )
+        assert listener.wait_for_callback(timeout_seconds=1) == first_payload
+    finally:
+        listener.close()
 
 
 def test_run_openai_login_surfaces_relogin_guidance_without_persisting(tmp_path) -> None:

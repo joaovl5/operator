@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .types import OperatorSettingsPath
 
 
-DEFAULT_CALLBACK_HOST = "0.0.0.0"  # noqa: S104
+DEFAULT_CALLBACK_HOST = "127.0.0.1"
 DEFAULT_CALLBACK_PORT = 1455
 DEFAULT_CALLBACK_PATH = "/auth/callback"
 DEFAULT_CALLBACK_HOST_URI = "localhost"
