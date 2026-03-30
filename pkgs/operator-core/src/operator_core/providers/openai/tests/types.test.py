@@ -2,6 +2,11 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from operator_core.providers import ModelConfig
+from operator_core.providers.openai.oauth.settings import (
+    OpenAIOAuthModelConfig,
+    OpenAIOAuthModelSettings,
+    oauth_responses_settings,
+)
 from operator_core.providers.openai.types import OpenAIModelConfig, OpenAIModelSettings
 
 
@@ -22,22 +27,34 @@ def test_openai_model_config_validates_settings_as_base_model() -> None:
         _ = OpenAIModelSettings.model_validate({"not_a_real_setting": True})
 
 
-def test_openai_model_config_validates_openai_settings_payloads() -> None:
-    """OpenAI config keeps durable OpenAI settings validation local."""
-    config = OpenAIModelConfig.model_validate(
-        {
-            "name": "gpt-5.3-codex",
-            "settings": {
-                "openai_store": False,
-                "openai_send_reasoning_ids": False,
-            },
-        }
-    )
+def test_openai_oauth_model_settings_are_strictly_oauth_safe() -> None:
+    """OAuth settings stay narrow enough to reject unsupported state."""
+    settings = OpenAIOAuthModelSettings.model_validate({})
 
-    assert config.settings == OpenAIModelSettings(
-        openai_store=False,
-        openai_send_reasoning_ids=False,
-    )
+    assert isinstance(settings, BaseModel)
+    assert settings.model_dump(exclude_none=True) == {
+        "openai_store": False,
+        "openai_send_reasoning_ids": False,
+    }
+    assert oauth_responses_settings() == settings
+
+    with pytest.raises(ValidationError, match="openai_store"):
+        _ = OpenAIOAuthModelSettings.model_validate({"openai_store": True})
+    with pytest.raises(ValidationError, match="openai_previous_response_id"):
+        _ = OpenAIOAuthModelSettings.model_validate(
+            {"openai_previous_response_id": "previous-response-id"}
+        )
+
+
+def test_openai_oauth_model_config_rejects_unsupported_model_names() -> None:
+    """OAuth model configs only admit the validated codex model name."""
+    config = OpenAIOAuthModelConfig.model_validate({"name": "gpt-5.3-codex"})
+
+    assert isinstance(config.settings, OpenAIOAuthModelSettings)
+    assert config.settings == OpenAIOAuthModelSettings()
+
+    with pytest.raises(ValidationError, match=r"gpt-4\.1"):
+        _ = OpenAIOAuthModelConfig.model_validate({"name": "gpt-4.1"})
 
 
 def test_provider_model_config_accepts_openai_settings_subclasses() -> None:

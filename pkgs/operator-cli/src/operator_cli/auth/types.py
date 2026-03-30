@@ -1,4 +1,4 @@
-"""Types and errors for the CLI OpenAI auth flow."""
+"""Types for the CLI OpenAI auth flow."""
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Protocol
@@ -7,22 +7,6 @@ from attrs import define
 
 if TYPE_CHECKING:
     from operator_core.providers.openai import OpenAITokenResponse
-
-
-class OpenAIAuthCliError(RuntimeError):
-    """Base error for CLI-facing OpenAI auth failures."""
-
-
-class CallbackParseError(ValueError, OpenAIAuthCliError):
-    """Raised when a pasted callback URL cannot be parsed safely."""
-
-
-class CallbackStateMismatchError(OpenAIAuthCliError):
-    """Raised when an OAuth callback returns an unexpected state value."""
-
-
-class CallbackListenerTimeoutError(TimeoutError, OpenAIAuthCliError):
-    """Raised when no valid OAuth callback is received before the deadline."""
 
 
 @define(frozen=True, kw_only=True)
@@ -48,7 +32,14 @@ class CallbackListener(Protocol):
 class CallbackListenerFactory(Protocol):
     """Factory for creating callback listeners bound to local settings."""
 
-    def __call__(self, *, host: str, port: int, path: str) -> CallbackListener:
+    def __call__(
+        self,
+        *,
+        bind_host: str,
+        port: int,
+        path: str,
+        pending_state: str,
+    ) -> CallbackListener:
         """Create a listener bound to the configured callback host and port."""
         ...
 

@@ -8,25 +8,28 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
 from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 
-from operator_core.providers.openai import (
+from operator_core.providers.openai import OpenAIModelProvider
+from operator_core.providers.openai.client import get_openai_client
+from operator_core.providers.openai.errors import OpenAIOAuthReauthRequiredError
+from operator_core.providers.openai.oauth.chatgpt import (
     CHATGPT_CODEX_BASE_URL,
-    MISSING_CREDENTIALS_MESSAGE,
     OPERATOR_ORIGINATOR,
+    build_chatgpt_oauth_client,
+)
+from operator_core.providers.openai.oauth.manager import (
+    MISSING_CREDENTIALS_MESSAGE,
     REFRESH_REJECTED_MESSAGE,
     REMOVED_CREDENTIALS_MESSAGE,
-    OpenAIModelProvider,
-    OpenAIOAuthCredentials,
     OpenAIOAuthManager,
-    OpenAIOAuthModelConstraintError,
-    OpenAIOAuthModelProvider,
-    OpenAIOAuthReauthRequiredError,
-    OpenAIOAuthSettingsConstraintError,
-    OpenAIOAuthStore,
-    OpenAITokenResponse,
-    build_chatgpt_oauth_client,
-    get_openai_client,
+)
+from operator_core.providers.openai.oauth.provider import OpenAIOAuthModelProvider
+from operator_core.providers.openai.oauth.settings import (
+    OpenAIOAuthModelConfig,
+    OpenAIOAuthModelSettings,
     oauth_responses_settings,
 )
+from operator_core.providers.openai.oauth.store import OpenAIOAuthStore
+from operator_core.providers.openai.oauth.types import OpenAIOAuthCredentials, OpenAITokenResponse
 from operator_core.providers.openai.types import OpenAIModelConfig, OpenAIModelSettings
 
 if TYPE_CHECKING:
@@ -108,7 +111,7 @@ def test_oauth_manager_refreshes_expired_credentials_and_persists_them(
     monkeypatch.setattr("operator_shared.time.utils.time.time", lambda: 0.0)
     store = make_store(tmp_path, make_credentials(expires_at_ms=0))
 
-    def refresh(refresh_token: str) -> OpenAITokenResponse:
+    def refresh(*, refresh_token: str) -> OpenAITokenResponse:
         assert refresh_token == REFRESH_TOKEN
         return OpenAITokenResponse(
             access_token=REFRESHED_ACCESS_TOKEN,
@@ -144,7 +147,7 @@ def test_oauth_manager_serializes_refresh_across_concurrent_callers(
     refresh_release = threading.Event()
     refresh_calls = 0
 
-    def refresh(refresh_token: str) -> OpenAITokenResponse:
+    def refresh(*, refresh_token: str) -> OpenAITokenResponse:
         nonlocal refresh_calls
         assert refresh_token == REFRESH_TOKEN
         refresh_calls += 1
@@ -188,7 +191,7 @@ def test_oauth_manager_serializes_refresh_across_managers_sharing_one_store(
     refresh_release = threading.Event()
     refresh_calls = 0
 
-    def refresh(refresh_token: str) -> OpenAITokenResponse:
+    def refresh(*, refresh_token: str) -> OpenAITokenResponse:
         nonlocal refresh_calls
         assert refresh_token == REFRESH_TOKEN
         refresh_calls += 1
@@ -255,7 +258,8 @@ def test_oauth_manager_normalizes_refresh_auth_failures(tmp_path: Path) -> None:
     """Refresh auth failures are converted into the public re-login message."""
     store = make_store(tmp_path, make_credentials(expires_at_ms=0))
 
-    def fail_refresh(_refresh_token: str) -> OpenAITokenResponse:
+    def fail_refresh(*, refresh_token: str) -> OpenAITokenResponse:
+        del refresh_token
         message = "needs re-login"
         raise OpenAIOAuthReauthRequiredError(message)
 
@@ -275,7 +279,7 @@ def test_delete_during_refresh_leaves_store_empty(
     refresh_started = threading.Event()
     refresh_release = threading.Event()
 
-    def refresh(refresh_token: str) -> OpenAITokenResponse:
+    def refresh(*, refresh_token: str) -> OpenAITokenResponse:
         assert refresh_token == REFRESH_TOKEN
         refresh_started.set()
         assert refresh_release.wait(timeout=1)
@@ -316,7 +320,7 @@ def test_newer_credentials_win_over_stale_refresh_results(
     refresh_started = threading.Event()
     refresh_release = threading.Event()
 
-    def refresh(refresh_token: str) -> OpenAITokenResponse:
+    def refresh(*, refresh_token: str) -> OpenAITokenResponse:
         assert refresh_token == REFRESH_TOKEN
         refresh_started.set()
         assert refresh_release.wait(timeout=1)
@@ -358,9 +362,13 @@ def test_newer_credentials_win_over_stale_refresh_results(
 
 def test_oauth_responses_settings_return_validated_serializable_model() -> None:
     """OAuth responses defaults are a serializable model, not an ad-hoc typed dict."""
+    signature = inspect.signature(oauth_responses_settings)
+    assert signature.parameters == {}
+
     settings = oauth_responses_settings()
 
     assert isinstance(settings, BaseModel)
+    assert isinstance(settings, OpenAIOAuthModelSettings)
     assert settings.model_dump(mode="json", exclude_none=True) == {
         "openai_store": False,
         "openai_send_reasoning_ids": False,
@@ -376,36 +384,24 @@ def test_oauth_responses_settings_return_validated_serializable_model() -> None:
         )
 
 
-def test_openai_oauth_provider_raises_dedicated_error_for_unsupported_models(
+def test_openai_oauth_model_config_and_provider_build_responses_models(
     tmp_path: Path,
 ) -> None:
-    """OAuth provider rejects unsupported model names with a focused error."""
+    """OAuth provider uses a validated OAuth config boundary to build responses models."""
     provider = OpenAIOAuthModelProvider(store=make_oauth_store(tmp_path))
 
-    with pytest.raises(OpenAIOAuthModelConstraintError, match=r"gpt-4\.1"):
-        _ = provider.build_model(model_config=OpenAIModelConfig(name="gpt-4.1"))
-
-
-def test_openai_oauth_provider_raises_dedicated_error_for_forbidden_settings(
-    tmp_path: Path,
-) -> None:
-    """OAuth provider rejects disallowed responses settings with a focused error."""
-    provider = OpenAIOAuthModelProvider(store=make_oauth_store(tmp_path))
-
-    with pytest.raises(OpenAIOAuthSettingsConstraintError, match="openai_store"):
-        _ = provider.build_model(
-            model_config=OpenAIModelConfig(
-                name="gpt-5.3-codex",
-                settings=OpenAIModelSettings(openai_store=True),
-            )
+    with pytest.raises(ValidationError, match="openai_store"):
+        _ = OpenAIOAuthModelConfig.model_validate(
+            {
+                "name": "gpt-5.3-codex",
+                "settings": {"openai_store": True},
+            }
         )
 
+    with pytest.raises(ValidationError, match=r"gpt-4\.1"):
+        _ = OpenAIOAuthModelConfig.model_validate({"name": "gpt-4.1"})
 
-def test_openai_oauth_provider_builds_responses_models_from_settings_model(tmp_path: Path) -> None:
-    """OAuth provider still builds responses models from validated settings objects."""
-    provider = OpenAIOAuthModelProvider(store=make_oauth_store(tmp_path))
-
-    model = provider.build_model(model_config=OpenAIModelConfig(name="gpt-5.3-codex"))
+    model = provider.build_model(model_config=OpenAIOAuthModelConfig(name="gpt-5.3-codex"))
 
     assert isinstance(model, OpenAIResponsesModel)
     assert model.settings is not None
@@ -424,7 +420,7 @@ def test_openai_and_oauth_providers_build_public_model_types(tmp_path: Path) -> 
         )
     )
     oauth_model = OpenAIOAuthModelProvider(store=make_oauth_store(tmp_path)).build_model(
-        model_config=OpenAIModelConfig(name="gpt-5.3-codex")
+        model_config=OpenAIOAuthModelConfig(name="gpt-5.3-codex")
     )
 
     assert isinstance(openai_model, OpenAIChatModel)
@@ -436,13 +432,17 @@ def test_openai_and_oauth_providers_build_public_model_types(tmp_path: Path) -> 
 def test_public_openai_client_helpers_match_workspace_api_conventions() -> None:
     """Public provider helpers keep keyword-only arguments and real docstrings."""
     signature = inspect.signature(get_openai_client)
-
     assert signature.parameters["api_key"].kind is inspect.Parameter.KEYWORD_ONLY
     assert signature.parameters["base_url"].kind is inspect.Parameter.KEYWORD_ONLY
+
+    oauth_client_signature = inspect.signature(build_chatgpt_oauth_client)
+    assert oauth_client_signature.parameters["manager"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert inspect.signature(oauth_responses_settings).parameters == {}
 
     for method in (
         OpenAIModelProvider.get_openai_client,
         OpenAIModelProvider.build_model,
+        build_chatgpt_oauth_client,
         OpenAIOAuthModelProvider.get_openai_client,
         OpenAIOAuthModelProvider.build_provider,
         OpenAIOAuthModelProvider.build_model,

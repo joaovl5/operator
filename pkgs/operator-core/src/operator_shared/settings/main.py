@@ -2,8 +2,9 @@
 
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
+from urllib.parse import quote
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .utils import default_operator_settings_path, load_optional_toml
 
@@ -11,11 +12,9 @@ if TYPE_CHECKING:
     from .types import OperatorSettingsPath
 
 
-DEFAULT_CALLBACK_HOST = "127.0.0.1"
+DEFAULT_CALLBACK_BIND_HOST = "localhost"
 DEFAULT_CALLBACK_PORT = 1455
 DEFAULT_CALLBACK_PATH = "/auth/callback"
-DEFAULT_CALLBACK_HOST_URI = "localhost"
-DEFAULT_REFRESH_BUFFER_MS = 60_000
 
 
 class CallbackSettings(BaseModel):
@@ -23,14 +22,21 @@ class CallbackSettings(BaseModel):
 
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
-    host: str = DEFAULT_CALLBACK_HOST
-    port: int = DEFAULT_CALLBACK_PORT
+    port: int = Field(default=DEFAULT_CALLBACK_PORT, ge=1, le=65_535)
     path: str = DEFAULT_CALLBACK_PATH
-    host_uri: str = DEFAULT_CALLBACK_HOST_URI
+
+    @field_validator("path")
+    @classmethod
+    def validate_path(cls, value: str) -> str:
+        """Require an absolute URI-safe callback path without query or fragment components."""
+        if not value.startswith("/") or "?" in value or "#" in value or quote(value, safe="/") != value:
+            message = "callback path must be absolute, URI-safe, and exclude query/fragment components"
+            raise ValueError(message)
+        return value
 
     def redirect_uri(self) -> str:
         """Return the browser redirect URI for this callback configuration."""
-        return f"http://{self.host_uri}:{self.port}{self.path}"
+        return f"http://{DEFAULT_CALLBACK_BIND_HOST}:{self.port}{self.path}"
 
 
 class OAuthSettings(BaseModel):
@@ -38,7 +44,6 @@ class OAuthSettings(BaseModel):
 
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
-    refresh_buffer_ms: int = DEFAULT_REFRESH_BUFFER_MS
     callback: CallbackSettings = Field(default_factory=CallbackSettings)
 
 
