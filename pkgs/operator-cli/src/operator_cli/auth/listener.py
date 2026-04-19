@@ -2,8 +2,12 @@
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Event, Lock, Thread
-from typing import final, override
+from typing import TYPE_CHECKING, Protocol, final, override
 from urllib.parse import parse_qs, urlsplit
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
 
 from attrs import define, field
 
@@ -46,11 +50,22 @@ def parse_callback_query(*, query: str) -> CallbackPayload:
     return CallbackPayload(code=code_values[0], state=state_values[0])
 
 
+class _PayloadLock(Protocol):
+    def __enter__(self) -> object: ...
+    def __exit__(
+        self,
+        type_: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
+        /,
+    ) -> None: ...
+
+
 @define
 class _ListenerState:
     payload: CallbackPayload | None = None
     payload_ready: Event = field(factory=Event)
-    payload_lock: Lock = field(factory=Lock)
+    payload_lock: _PayloadLock = field(factory=Lock)
 
 
 @final

@@ -317,29 +317,23 @@ def test_token_response_to_credentials_preserves_previous_account_id_on_refresh_
 
 
 @pytest.mark.parametrize(
-    ("operation", "kwargs"),
+    "operation",
     [
-        pytest.param(
-            exchange_authorization_code,
-            {"code": CODE, "code_verifier": CODE_VERIFIER},
-            id="exchange",
-        ),
-        pytest.param(refresh_access_token, {"refresh_token": REFRESH_TOKEN}, id="refresh"),
+        pytest.param(generate_with_client, id="exchange"),
+        pytest.param(refresh_with_client, id="refresh"),
     ],
 )
 def test_token_operations_map_auth_failures_to_relogin_errors(
-    operation,
-    kwargs,
+    operation: Callable[[httpx.Client], OpenAITokenResponse],
 ) -> None:
     """Focused auth failures surface as re-login errors for both token operations."""
-
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(401, json={"error": "invalid_grant"}, request=request)
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
 
     with pytest.raises(OpenAIOAuthReauthRequiredError):
-        _ = operation(client=client, **kwargs)
+        _ = operation(client)
 
 
 @pytest.mark.parametrize(

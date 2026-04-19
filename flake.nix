@@ -53,7 +53,6 @@
           just
           mdbook
           prek
-          commitizen
         ];
       };
     });

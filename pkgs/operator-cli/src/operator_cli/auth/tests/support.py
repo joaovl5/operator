@@ -1,6 +1,5 @@
 """Shared test helpers for the CLI auth package."""
 
-# ruff: noqa: INP001
 
 import base64
 import json

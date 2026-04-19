@@ -17,7 +17,7 @@ def test_build_parser_help_lists_openai_auth_commands() -> None:
     assert "status" in help_text
 
 
-def test_main_dispatches_status_to_openai_auth_module(monkeypatch) -> None:
+def test_main_dispatches_status_to_openai_auth_module(monkeypatch: pytest.MonkeyPatch) -> None:
     """CLI dispatch stays a thin wrapper around the auth module."""
     expected = 23
 
@@ -39,7 +39,12 @@ def test_main_dispatches_status_to_openai_auth_module(monkeypatch) -> None:
         pytest.param(["auth", "openai", "status"], "run_openai_status", 13, id="status"),
     ],
 )
-def test_main_dispatches_each_openai_auth_command(monkeypatch, argv, attribute, expected) -> None:
+def test_main_dispatches_each_openai_auth_command(
+    monkeypatch: pytest.MonkeyPatch,
+    argv: list[str],
+    attribute: str,
+    expected: int,
+) -> None:
     """Each public OpenAI auth command dispatches to its corresponding CLI helper."""
 
     def handler() -> int:
@@ -51,7 +56,7 @@ def test_main_dispatches_each_openai_auth_command(monkeypatch, argv, attribute, 
 
 
 @pytest.mark.parametrize("argv", [["auth"], ["auth", "openai"]])
-def test_build_parser_rejects_incomplete_auth_command_shapes(argv) -> None:
+def test_build_parser_rejects_incomplete_auth_command_shapes(argv: list[str]) -> None:
     """Incomplete auth command paths fail with argparse usage errors."""
     parser = build_parser()
 

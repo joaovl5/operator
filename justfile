@@ -12,6 +12,3 @@ alias f := format
 format:
   nix fmt --quiet --log-format raw
   uv run ruff format --quiet
-
-commit:
-  cz commit

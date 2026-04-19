@@ -14,9 +14,6 @@ pkgs: {
       enable = true;
       args = ["--maxkb=50000"];
     };
-    commitizen = {
-      enable = true;
-    };
     treefmt_nix = {
       enable = true;
       name = "treefmt_nix";

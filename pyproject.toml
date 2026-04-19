@@ -21,14 +21,17 @@
 
 
 [tool.basedpyright]
-  include                           = ["pkgs/operator-cli/src", "pkgs/operator-core/src"]
-  exclude                           = ["**/__pycache__", "**/node_modules"]
-  typeCheckingMode                  = "recommended"
-  failOnWarnings                    = true
-  enableReachabilityAnalysis        = true
-  analyzeUnannotatedFunctions       = false
-  reportExplicitAny                 = true
-  reportAny                         = true
+  include                     = ["pkgs/operator-cli/src", "pkgs/operator-core/src"]
+  exclude                     = ["**/__pycache__", "**/node_modules"]
+  typeCheckingMode            = "recommended"
+  failOnWarnings              = true
+  enableReachabilityAnalysis  = true
+  analyzeUnannotatedFunctions = false
+
+  # keep "Any" for exceptional cases
+  reportExplicitAny = false
+  reportAny         = false
+
   reportUnknownMemberType           = true
   reportUnknownParameterType        = true
   reportUnknownArgumentType         = true
@@ -40,42 +43,8 @@
   reportImplicitStringConcatenation = false
   reportCallInDefaultInitializer    = true
 
-  [[tool.basedpyright.executionEnvironments]]
-    root                       = "pkgs/operator-cli/src/operator_cli/auth/tests"
-    reportAny                  = false
-    reportUnknownMemberType    = false
-    reportUnknownParameterType = false
-    reportUnknownArgumentType  = false
-    reportMissingParameterType = false
-    reportUnknownVariableType  = false
-
-  [[tool.basedpyright.executionEnvironments]]
-    root                       = "pkgs/operator-core/src/operator_core/agent/tests"
-    reportAny                  = false
-    reportUnknownMemberType    = false
-    reportUnknownParameterType = false
-    reportUnknownArgumentType  = false
-    reportMissingParameterType = false
-    reportUnknownVariableType  = false
-
-  [[tool.basedpyright.executionEnvironments]]
-    root                       = "pkgs/operator-cli/src/operator_cli/tests"
-    reportAny                  = false
-    reportUnknownMemberType    = false
-    reportUnknownParameterType = false
-    reportUnknownArgumentType  = false
-    reportMissingParameterType = false
-    reportUnknownVariableType  = false
-
-  [[tool.basedpyright.executionEnvironments]]
-    root                       = "pkgs/operator-core/src/operator_core/providers/openai/tests"
-    reportAny                  = false
-    reportUnknownMemberType    = false
-    reportUnknownParameterType = false
-    reportUnknownArgumentType  = false
-    reportMissingParameterType = false
-    reportUnknownVariableType  = false
-
+  # let ruff handle private usage warnings (so we exclude them on tests)
+  reportPrivateUsage = false
 [tool.ruff]
   fix            = false
   line-length    = 100
@@ -147,9 +116,16 @@
     ]
     unfixable = ["ERA001", "F401", "F841", "T201", "T203"]
     [tool.ruff.lint.per-file-ignores]
-      "**/*.test.py"                                                           = ["INP001"]
-      "pkgs/operator-cli/src/operator_cli/auth/tests/openai_oauth.test.py"     = ["SLF001", "PLR2004"]
-      "pkgs/operator-core/src/operator_shared/settings/tests/settings.test.py" = ["S104"]
+      "**/*.test.py" = [
+        # omit "invalid module name" errors
+        "N999",
+        # omit implicit namespace package errors
+        "INP001",
+        # omit private usage errors
+        "SLF001",
+        # omit "magic value" errors
+        "PLR2004",
+      ]
     [tool.ruff.lint.pycodestyle]
       max-doc-length = 100
     [tool.ruff.lint.pydocstyle]
