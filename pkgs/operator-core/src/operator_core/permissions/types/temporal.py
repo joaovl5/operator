@@ -1,6 +1,9 @@
-from datetime import datetime  # noqa: TC003
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class _BaseTemporalScope(BaseModel): ...

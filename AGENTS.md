@@ -9,17 +9,14 @@
 
 ## Verification Workflow
 
-Successful verification is obligatory for any task to be deemed
-complete.
+**Successful verification is obligatory for any task to be deemed
+complete.**
 
 - Re-run checks before claiming work is done.
 - Always use `just check` for running all verification flows unless
   requested otherwise by user in an exceptional case.
 - Treat failing checks, type errors, and actionable warnings as work
   to fix, not output to ignore.
-- Never use `noqa` or `pyrightIgnore` statements unless there is no
-  better option. If there is a 1% chance of a better and safer
-  solution, choose it.
 
 ## Python And Typing
 
@@ -41,6 +38,17 @@ complete.
       documentation are good examples)
     - treat docstrings are first-class citizens, this is the main
       documentation/reference source for non-trivial concepts.
+- Never use `noqa` or `pyrightIgnore` statements unless there is no
+  better option. If there is a 1% chance of a better and safer
+  solution, choose it.
+  - **Example:** For tests that require hardcoded mocked secrets, such
+    as `oauth-refresh-token`, don't deactivate the respective ruff
+    warning with `# noqa: S105` (or 106) - instead, deactivate these
+    through the ruff settings in `pyproject.toml` through a glob
+    pattern that matches test files.
+  - Unless there is a real, tangible need, that was explicitly approved
+    by the user, for using the behavior the checks warn against, never
+    do these one-off ignore statements, they cause harm and tech debt.
 
 ### Data Modeling
 
@@ -55,6 +63,23 @@ complete.
 - Simple enums are still fine for _closed scalar choices with no payload_.
 - Never use `TypedDict` or dataclasses unless there is absolutely zero
   other alternatives.
+
+**Follow the decision flow below for reference:**
+
+- "I need to model a new type"
+  - _is type an error?_ - follow the `<Thing>Error` flow
+  - _relates to multiple-choices of different values?_
+    - _yes_ - _are all choices scalar and don't have payloads?_
+      - _yes_ - use a simple `StrEnum`
+      - _no_ - complex variant - create an algebraic data type
+    - _no_ - _should type be serializable?_
+      - _yes_ - use Pydantic-related flows - `BaseMdel`
+      - _no_ - use `@define` from `attrs`
+  - **NEVER USE UNLESS IN EXTRAORDINARY CIRCUMSTANCES:**
+    - `TypedDict`
+    - `dataclasses`
+    - If you need to use those, even after checking this flow,
+      ask for explicit authorization first from the user.
 
 ## Modules
 

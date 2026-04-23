@@ -12,11 +12,11 @@ class Communication:
     class Allow(_BaseComm):
         """Allow communication in configured cases."""
 
-        allow_all: bool = False
+        allow_all: bool = False  # overrides others
         allow_parent: bool = True
         allow_invoked: bool = True
         allow_downwards: bool = False
-        allow_upwards: bool = True
+        allow_upwards: bool = False
         allow_neighbours: bool = False
 
 

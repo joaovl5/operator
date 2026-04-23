@@ -1,16 +1,12 @@
-from operator_shared.forms import BaseForm, ObjectMetadata
+from typing import Literal
+
+from operator_shared.forms import BaseForm
 
 
-class ToolsetAction[InType: BaseForm, OutType: BaseForm](BaseForm):
-    """A toolset action schema pair with metadata."""
-
-    metadata: ObjectMetadata
-    input_model: InType
-    output_model: OutType
+class ToolSuccess(BaseForm):
+    success: Literal[True] = True
 
 
-class Toolset[InType: BaseForm, OutType: BaseForm](BaseForm):
-    """Toolset for agent usage."""
-
-    metadata: ObjectMetadata
-    actions: list[ToolsetAction[InType, OutType]]
+class ToolError(BaseForm):
+    error_code: str
+    error_detail: str

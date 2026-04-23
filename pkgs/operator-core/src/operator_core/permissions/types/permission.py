@@ -1,12 +1,7 @@
-from importlib import import_module
-from typing import TYPE_CHECKING
-
 from pydantic import BaseModel, DirectoryPath
 
 from .communication import Communication, CommunicationState
-
-if TYPE_CHECKING:
-    from .temporal import TemporalScopeType
+from .temporal import TemporalScopeType  # noqa: TC001
 
 
 class FilesystemScope(BaseModel):
@@ -60,16 +55,3 @@ class PermissionItem(BaseModel):
 
 class PermissionSet(BaseModel):
     """A group of permission items for a certain scope."""
-
-
-def _rebuild_models() -> None:
-    _ = PermissionItem.model_rebuild(
-        _types_namespace={
-            "TemporalScopeType": import_module(
-                "operator_core.permissions.types.temporal"
-            ).TemporalScopeType
-        }
-    )
-
-
-_rebuild_models()

@@ -1,31 +1,23 @@
-from importlib import import_module
+from asyncio import Lock
 from typing import TYPE_CHECKING
 
-from attrs import define, field
-from pydantic import BaseModel
+from attrs import Factory, define, field
 from pydantic_ai import Agent
 
 if TYPE_CHECKING:
-    from operator_core.providers import ModelProvider
-else:
-    ModelProvider = import_module("operator_core.providers").ModelProvider
+    from pydantic_ai.models import Model
 
 
 @define(kw_only=True)
-class OperatorAgent[
-    OutType: BaseModel,
-    ConfigT: BaseModel,
-]:
-    """Operator agent instance."""
+class OpAgent:
+    """Simple agent for testing."""
 
-    provider: ModelProvider[ConfigT]
-    output_type: type[OutType]
-    model_config: ConfigT
-    agent: Agent[None, OutType] = field(init=False)
+    model: Model
+    lock: Lock = Factory(Lock)
+    agent: Agent = field(init=False)
 
     def __attrs_post_init__(self) -> None:
         """Initialize internal pydantic-ai agent."""
         self.agent = Agent(
-            model=self.provider.build_model(model_config=self.model_config),
-            output_type=self.output_type,
+            model=self.model,
         )

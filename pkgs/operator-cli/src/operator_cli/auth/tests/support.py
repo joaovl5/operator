@@ -1,6 +1,5 @@
 """Shared test helpers for the CLI auth package."""
 
-
 import base64
 import json
 
