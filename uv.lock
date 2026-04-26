@@ -186,6 +186,16 @@ wheels = [
 ]
 
 [[package]]
+name = "fastnanoid"
+version = "0.4.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/f5/dd1935e7b6a7534c008b39205c6fad38c59146ef0a4987696fd770f9e1a1/fastnanoid-0.4.3.tar.gz", hash = "sha256:aa8d33896513fa02dbc1393396365ef5023c1ffb73dd344fd797cc846452b45a", size = 9981, upload-time = "2025-06-30T14:43:35.824Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/a1/5b3938464cf0ba235c76b15b1d0fe2d61cfd47dac848595bc47fc1fe541e/fastnanoid-0.4.3-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c5833bb7a1814e105f713731f7aac4aadb06e14517139d70080cacce458026eb", size = 234388, upload-time = "2025-06-30T14:42:35.479Z" },
+    { url = "https://files.pythonhosted.org/packages/59/30/6dd2f979a78783848fcff31251cc5bc45c315eb9314a5c9b485e76fc818d/fastnanoid-0.4.3-cp314-cp314-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:39fb393f81eb5ce37135418a9a10560b670682eeca4c062b985a1bc6fec45705", size = 249086, upload-time = "2025-06-30T14:42:22.718Z" },
+]
+
+[[package]]
 name = "genai-prices"
 version = "0.0.56"
 source = { registry = "https://pypi.org/simple" }
@@ -494,6 +504,7 @@ dependencies = [
     { name = "aiofile" },
     { name = "alembic" },
     { name = "anyio" },
+    { name = "fastnanoid" },
     { name = "httpx" },
     { name = "sqlalchemy" },
 ]
@@ -512,6 +523,7 @@ requires-dist = [
     { name = "aiofile", specifier = ">=3.9.0" },
     { name = "alembic", specifier = ">=1.18.4" },
     { name = "anyio", specifier = ">=4.12.1" },
+    { name = "fastnanoid", specifier = ">=0.4.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
 ]
