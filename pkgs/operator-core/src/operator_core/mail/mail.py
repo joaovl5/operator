@@ -58,7 +58,7 @@ class Mailbox(BaseModel):
         *,
         receiver_id: str,
         reverse_order: bool = False,
-    ) -> None:
+    ) -> list[RenderedMailMessage]:
         """Renders messages from perspective of `receiver_id`."""
         rendered_msgs: list[RenderedMailMessage] = []
 
@@ -78,3 +78,5 @@ class Mailbox(BaseModel):
             key=lambda x: x.time,
             reverse=reverse_order,
         )
+
+        return rendered_msgs

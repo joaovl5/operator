@@ -66,6 +66,7 @@ class Session:
         self.mailbox.add(
             msg=msg.to_mail_message(),
         )
+        await self.agent_turn(agent_id=msg.target_agent_id)
 
     async def agent_turn(self, agent_id: str) -> None:
         """Acquire agent for running a single step."""
@@ -73,4 +74,6 @@ class Session:
         if agent is None:
             raise SessionMissingAgentError
         async with agent.lock:
-            pass
+            agent_res = await agent.agent.run(
+                message_history=[],
+            )
