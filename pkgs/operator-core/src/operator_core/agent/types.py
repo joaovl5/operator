@@ -16,14 +16,14 @@ from operator_shared.time.utils import mk_time
 if TYPE_CHECKING:
     from datetime import datetime
 
-ORCHESTRATOR_KEY = "orchestrator"
+ORCHESTRATOR_ID = "orchestrator"
 
 
 class UserMessage(BaseModel):
     """Message object for direct communication to an agent."""
 
     contents: str
-    target_agent_id: str
+    target_agent_id: str = Field(ORCHESTRATOR_ID)
     source_user_id: str = Field(DEFAULT_USER_RECIPIENT_ID)
     sent_at: datetime = Field(default_factory=mk_time)
 

@@ -1,12 +1,21 @@
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from operator_core.permissions.types.permission import PermissionItem, PermissionType
+from operator_shared.forms import BaseForm
 
 if TYPE_CHECKING:
     from datetime import datetime
 
 
-class _BaseTemporalScope(BaseModel): ...
+class _BaseTemporalScope(BaseForm):
+    def wrap_permission(self, perm: PermissionType) -> PermissionItem:
+        """Wrap temporal scope in a permission, yielding a `PermissionItem`."""
+        return PermissionItem(
+            permission=perm,
+            temporal_scope=self,  # pyright: ignore[reportArgumentType]  handle later
+        )
 
 
 class TemporalScope:

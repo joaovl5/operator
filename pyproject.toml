@@ -5,6 +5,7 @@
   requires-python = ">=3.14"
   dependencies = [
     "aiofile>=3.9.0",
+    "anyio>=4.12.1",
     "httpx>=0.28.1",
   ]
 

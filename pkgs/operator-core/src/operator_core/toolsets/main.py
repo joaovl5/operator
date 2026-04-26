@@ -1,14 +1,16 @@
 """File-related toolset."""
 
-from aiofile import async_open
-from pydantic import Field, FilePath
+from asyncio import Task, create_task, gather
+
+from anyio import Path
+from pydantic import Field
 
 from operator_core.toolsets.types import ToolError, ToolSuccess
 from operator_shared.forms import BaseForm
 
 
 class FileReadRequest(BaseForm):
-    path: FilePath = Field(description="Path to file to be read")
+    path: Path = Field(description="Path to file to be read")
 
 
 class FileReadSuccess(ToolSuccess):
@@ -24,7 +26,16 @@ type FileReadResponse = FileReadError | FileReadSuccess
 async def file_read(req: FileReadRequest) -> FileReadResponse:
     """Reads a file."""
     try:
-        async with async_open(req.path, mode="r") as f:
+        if not await req.path.exists():
+            return FileReadError(
+                error_code="file_missing",
+                error_detail="Specified path doesn't exist",
+            )
+        if not await req.path.is_file():
+            return FileReadError(
+                error_code="not_file", error_detail="Specified path doesn't belong to a file"
+            )
+        async with await req.path.open(mode="r") as f:
             data: str = await f.read()
             return FileReadSuccess(
                 contents=data,
@@ -37,7 +48,7 @@ async def file_read(req: FileReadRequest) -> FileReadResponse:
 
 
 class FileWriteRequest(BaseForm):
-    path: FilePath = Field(description="Path to file for writing.")
+    path: Path = Field(description="Path to file for writing.")
     contents: str = Field(description="Contents of file to be written.")
 
 
@@ -56,7 +67,21 @@ async def file_write(req: FileWriteRequest) -> FileWriteResponse:
     Will give an error if attempting to edit/overwrite an existing file, use 'file_edit' instead.
     """
     try:
-        async with async_open(req.path, mode="w") as f:
+        if await req.path.exists():
+            if not await req.path.is_file():
+                return FileWriteError(
+                    error_code="not_file",
+                    error_detail="Specified path already exists and does not belong to a file.",
+                )
+            async with await req.path.open(mode="r") as f:
+                content_len = len(await f.read())
+            if content_len > 0:  # edge case of empty files being allowed
+                return FileWriteError(
+                    error_code="file_exists",
+                    error_detail="Cannot use this tool for writing into an already-existing file!",
+                )
+
+        async with await req.path.open(mode="w") as f:
             _ = f.write(req.contents)
             return FileWriteSuccess()
     except OSError as e:
@@ -66,4 +91,60 @@ async def file_write(req: FileWriteRequest) -> FileWriteResponse:
         )
 
 
-# impl. hashline later
+class FileSearchRequest(BaseForm):
+    queries: list[str] | str = Field(
+        description="Either a search query or a list of search queries to be made",
+    )
+
+
+class FileSearchSuccess(ToolSuccess):
+    files: set[Path] = Field(description="Paths of files matching search queries")
+
+
+class FileSearchError(ToolError): ...
+
+
+type FileSearchResponse = FileSearchError | FileSearchSuccess
+
+
+# TODO: MAKE INJECTABLE CWD DEPENDENCY
+
+CWD_STUB = Path()
+
+
+async def file_search(req: FileSearchRequest) -> FileSearchResponse:
+    """Find file paths matching any query string."""
+    queries: list[str]
+    match req.queries:
+        case list(x):
+            queries = x
+        case str(x):
+            queries = [x]
+    if not queries:
+        return FileSearchError(
+            error_code="empty_query",
+            error_detail="At least one non-empty query is required for file search",
+        )
+
+    try:
+        matches: set[Path] = set()
+
+        async def _fetch_path_matches(query: str):
+            partial_set: set[Path] = set()
+            async for match in CWD_STUB.rglob(pattern=query):
+                partial_set.add(match)
+            return partial_set
+
+        match_tasks: list[Task[set[Path]]] = [
+            create_task(
+                _fetch_path_matches(q),
+            )
+            for q in queries
+        ]
+        _ = await gather(*match_tasks)
+        for match_task in match_tasks:
+            matches.update(match_task.result())
+
+        return FileSearchSuccess(files=matches)
+    except OSError as error:
+        return FileSearchError(error_code="os_error", error_detail=str(error))

@@ -1,7 +1,7 @@
 """Permission type models."""
 
 from .communication import Communication, CommunicationState
-from .permission import FilesystemScope, Permission, PermissionItem, PermissionSet, PermissionType
+from .permission import FilesystemScope, Permission, PermissionGroup, PermissionItem, PermissionType
 from .temporal import TemporalScope, TemporalScopeType
 
 __all__ = [
@@ -9,8 +9,8 @@ __all__ = [
     "CommunicationState",
     "FilesystemScope",
     "Permission",
+    "PermissionGroup",
     "PermissionItem",
-    "PermissionSet",
     "PermissionType",
     "TemporalScope",
     "TemporalScopeType",

@@ -1,17 +1,22 @@
-from pydantic import BaseModel, DirectoryPath
+from typing import TYPE_CHECKING
+
+from operator_shared.forms import BaseForm
 
 from .communication import Communication, CommunicationState
 from .temporal import TemporalScopeType  # noqa: TC001
 
+if TYPE_CHECKING:
+    from anyio import Path
 
-class FilesystemScope(BaseModel):
+
+class FilesystemScope(BaseForm):
     """A filesystem scope for permission checks."""
 
-    path: DirectoryPath
+    path: Path
     glob: str = "*"
 
 
-class _BasePermission(BaseModel): ...
+class _BasePermission(BaseForm): ...
 
 
 class Permission:
@@ -46,12 +51,14 @@ type PermissionType = Permission.Filesystem.Read | Permission.Filesystem.Edit | 
 """Union for kinds of permissions agents may have."""
 
 
-class PermissionItem(BaseModel):
+class PermissionItem(BaseForm):
     """Permission instance with additional metadata."""
 
     permission: PermissionType
     temporal_scope: TemporalScopeType
 
 
-class PermissionSet(BaseModel):
+class PermissionGroup(BaseForm):
     """A group of permission items for a certain scope."""
+
+    perms: list[PermissionItem]
