@@ -135,8 +135,9 @@ class MailboxMapping(Base):
             "sender_agent_id",
         ),
         Index(
-            "ix_mailbox_mappings_receiver_agent_id",
+            "ix_mailbox_mappings_receiver_agent_id_state",
             "receiver_agent_id",
+            "state",
         ),
     )
 
@@ -270,6 +271,10 @@ class HistoryEpochMessageEnt(Entity):
         Index(
             "ix_history_epoch_messages_compacted_by_id",
             "compacted_by_id",
+        ),
+        Index(
+            "ix_history_epoch_messages_author_id",
+            "author_id",
         ),
     )
 
