@@ -37,16 +37,17 @@
   reportExplicitAny = false
   reportAny         = false
 
-  reportUnknownMemberType           = true
-  reportUnknownParameterType        = true
-  reportUnknownArgumentType         = true
-  reportMissingParameterType        = true
-  reportImplicitOverride            = true
-  reportMissingTypeStubs            = false
-  reportUnknownVariableType         = true
-  reportMissingSuperCall            = false
-  reportImplicitStringConcatenation = false
-  reportCallInDefaultInitializer    = true
+  reportUnknownMemberType             = true
+  reportUnknownParameterType          = true
+  reportUnknownArgumentType           = true
+  reportMissingParameterType          = true
+  reportImplicitOverride              = true
+  reportMissingTypeStubs              = false
+  reportUnknownVariableType           = true
+  reportMissingSuperCall              = false
+  reportImplicitStringConcatenation   = false
+  reportCallInDefaultInitializer      = true
+  reportUninitializedInstanceVariable = false
 
   # let ruff handle private usage warnings (so we exclude them on tests)
   reportPrivateUsage = false

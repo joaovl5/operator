@@ -1,18 +1,15 @@
-from typing import TYPE_CHECKING, ClassVar
+from datetime import datetime  # noqa: TC003
+from typing import ClassVar
 
 import fastnanoid
 from sqlalchemy import String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-if TYPE_CHECKING:
-    from datetime import datetime
+from operator_db.constants import SHORT_STR_LEN
 
 
 class Base(DeclarativeBase):
     pass
-
-
-SHORT_STR_LEN: int = 50
 
 
 class Entity(Base):
