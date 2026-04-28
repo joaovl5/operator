@@ -2,11 +2,9 @@
 
 from typing import TYPE_CHECKING
 
-from operator_db.utils.services import BaseService
+from operator_db.utils.services import BaseService, DbSession
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
-
     from operator_db.objects.mail.schema import (
         MailDeliveryResponseSchema,
         MailRequestSchema,
@@ -21,7 +19,7 @@ class MailService(BaseService):
         self,
         *,
         request: MailRequestSchema,
-        db_session: AsyncSession | None = None,
+        db_session: DbSession | None = None,
     ) -> MailResponseSchema:
         """Queue one message for one or more receivers."""
         _ = (..., request, db_session)
@@ -32,7 +30,7 @@ class MailService(BaseService):
         *,
         session_id: str,
         receiver_local_id: str,
-        db_session: AsyncSession | None = None,
+        db_session: DbSession | None = None,
     ) -> list[MailResponseSchema]:
         """Return queued messages and mark deliveries read."""
         _ = (..., session_id, receiver_local_id, db_session)
@@ -44,7 +42,7 @@ class MailService(BaseService):
         session_id: str,
         receiver_local_id: str,
         reverse_order: bool = False,
-        db_session: AsyncSession | None = None,
+        db_session: DbSession | None = None,
     ) -> list[MailResponseSchema]:
         """Return visible mailbox messages without mutating state."""
         _ = (..., session_id, receiver_local_id, reverse_order, db_session)
@@ -57,7 +55,7 @@ class MailService(BaseService):
         mail_message_id: str,
         sender_local_id: str,
         receiver_local_id: str,
-        db_session: AsyncSession | None = None,
+        db_session: DbSession | None = None,
     ) -> MailDeliveryResponseSchema:
         """Mark one delivery row as read."""
         _ = (..., session_id, mail_message_id, sender_local_id, receiver_local_id, db_session)
