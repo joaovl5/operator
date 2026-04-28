@@ -2,8 +2,10 @@
 
 from collections.abc import AsyncIterator  # noqa: TC003
 from contextlib import asynccontextmanager
+from typing import Protocol
 
 from attrs import define
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,6 +15,16 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 
 import operator_db
+
+
+class _SqliteCursor(Protocol):
+    def execute(self, statement: str, /) -> object: ...
+    def close(self) -> None: ...
+
+
+class _SqliteConnection(Protocol):
+    def cursor(self) -> _SqliteCursor: ...
+
 
 
 @define(frozen=True, kw_only=True)
@@ -32,6 +44,16 @@ async def tmp_sqlite_db() -> AsyncIterator[TmpSqliteDb]:
         poolclass=StaticPool,
     )
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+
+    def enable_sqlite_foreign_keys(
+        dbapi_connection: _SqliteConnection,
+        _: object,
+    ) -> None:
+        cursor = dbapi_connection.cursor()
+        _ = cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    event.listen(engine.sync_engine, "connect", enable_sqlite_foreign_keys)
 
     try:
         async with engine.begin() as conn:

@@ -1,3 +1,5 @@
+import pytest
+
 from operator_db.constants.role import HistoryMessageRole
 from operator_db.objects.agent import AgentRequestSchema, SessionAgentService
 from operator_db.objects.history import HistoryMessageRequestSchema, HistoryService
@@ -78,3 +80,45 @@ async def test_history_service_appends_ordered_messages_and_compaction_links() -
         assert [message.id for message in messages] == [first.id, second.id, third.id]
         assert epoch_messages == [third]
         assert messages[0].compacted_by_id == second.id
+
+
+
+async def test_history_service_rejects_cross_history_compaction_ids() -> None:
+    """History compaction only accepts message IDs from the current history."""
+    async with tmp_sqlite_db() as db:
+        sessions = SessionService()
+        agents = SessionAgentService()
+        history = HistoryService()
+
+        session = await sessions.create_session(
+            request=SessionRequestSchema(),
+            db_session=db.sessionmaker,
+        )
+        first_agent = await agents.create_agent(
+            request=AgentRequestSchema(session_id=session.id, local_id="worker"),
+            db_session=db.sessionmaker,
+        )
+        second_agent = await agents.create_agent(
+            request=AgentRequestSchema(session_id=session.id, local_id="reviewer"),
+            db_session=db.sessionmaker,
+        )
+
+        foreign_message = await history.append_message(
+            history_id=second_agent.history_id,
+            request=HistoryMessageRequestSchema(
+                role=HistoryMessageRole.USER,
+                text_contents="other history",
+            ),
+            db_session=db.sessionmaker,
+        )
+
+        with pytest.raises(LookupError, match="current history"):
+            _ = await history.append_message(
+                history_id=first_agent.history_id,
+                request=HistoryMessageRequestSchema(
+                    role=HistoryMessageRole.AGENT_SELF,
+                    text_contents="compacted summary",
+                ),
+                compacted_message_ids=[foreign_message.id],
+                db_session=db.sessionmaker,
+            )

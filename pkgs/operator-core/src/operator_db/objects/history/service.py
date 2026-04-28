@@ -134,12 +134,26 @@ class HistoryService(BaseService):
             await session.flush()
 
             if compacted_message_ids:
+                requested_compaction_ids = set(compacted_message_ids)
                 compacted_result = await session.execute(
-                    select(HistoryEpochMessageEnt).where(
-                        HistoryEpochMessageEnt.id.in_(compacted_message_ids),
+                    select(HistoryEpochMessageEnt)
+                    .join(HistoryEpochEnt, HistoryEpochEnt.id == HistoryEpochMessageEnt.epoch_id)
+                    .where(
+                        HistoryEpochEnt.history_id == history_id,
+                        HistoryEpochMessageEnt.id.in_(requested_compaction_ids),
                     )
                 )
-                for compacted_message in compacted_result.scalars().all():
+                compacted_messages = compacted_result.scalars().all()
+                found_compaction_ids = {message.id for message in compacted_messages}
+                missing_compaction_ids = requested_compaction_ids - found_compaction_ids
+                if missing_compaction_ids:
+                    missing_ids = ", ".join(sorted(missing_compaction_ids))
+                    message = (
+                        "compacted message IDs not found in current history: "
+                        f"{missing_ids}"
+                    )
+                    raise LookupError(message)
+                for compacted_message in compacted_messages:
                     compacted_message.compacted_by_id = message_ent.id
 
             await session.refresh(message_ent)

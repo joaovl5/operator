@@ -20,7 +20,7 @@ class BaseService:
             raise RuntimeError(message)
 
         if isinstance(db_session, AsyncSession):
-            if transaction:
+            if transaction and not db_session.in_transaction():
                 async with db_session.begin():
                     yield db_session
             else:

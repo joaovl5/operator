@@ -47,6 +47,35 @@ async def test_session_service_persists_and_updates_sessions() -> None:
         assert refetched == updated
 
 
+
+async def test_session_service_reuses_caller_managed_transaction() -> None:
+    """Session service composes with an existing transactional AsyncSession."""
+    async with tmp_sqlite_db() as db:
+        service = SessionService()
+
+        async with db.sessionmaker() as session, session.begin():
+                created = await service.create_session(
+                    request=SessionRequestSchema(title="Shared title"),
+                    db_session=session,
+                )
+
+                updated = await service.update_session(
+                    session_id=created.id,
+                    request=SessionRequestSchema(
+                        title="Updated shared title",
+                        description="Shared description",
+                    ),
+                    db_session=session,
+                )
+
+                fetched = await service.get_session(
+                    session_id=created.id,
+                    db_session=session,
+                )
+
+        assert updated.id == created.id
+        assert fetched == updated
+
 async def test_session_service_requires_bound_session_source() -> None:
     """Session service rejects calls without a bound session or sessionmaker."""
     service = SessionService()
