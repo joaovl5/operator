@@ -11,10 +11,16 @@
     "fastnanoid>=0.4.3",
     "httpx>=0.28.1",
     "sqlalchemy>=2.0.49",
+    "operator-core",
+    "operator-cli",
   ]
 
 [tool.uv.workspace]
   members = ["pkgs/*"]
+
+[tool.uv.sources]
+  operator-core = { workspace = true }
+  operator-cli  = { workspace = true }
 
 [dependency-groups]
   dev = [
@@ -132,6 +138,11 @@
         "SLF001",
         # omit "magic value" errors
         "PLR2004",
+      ]
+    [tool.ruff.lint.flake8-type-checking]
+      runtime-evaluated-base-classes = [
+        "pydantic.BaseModel",
+        "operator_shared.forms.BaseForm",
       ]
     [tool.ruff.lint.pycodestyle]
       max-doc-length = 100

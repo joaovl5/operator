@@ -9,6 +9,7 @@ reports/
 .venv
 .pre-commit-config.yaml
 .operator/
+config.toml
 
 # Nix
 .direnv

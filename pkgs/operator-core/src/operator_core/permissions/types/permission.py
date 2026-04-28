@@ -1,17 +1,14 @@
-from typing import TYPE_CHECKING
+import pathlib
 
 from operator_shared.forms import BaseForm
 
 from .communication import Communication, CommunicationState
 
-if TYPE_CHECKING:
-    from anyio import Path
-
 
 class FilesystemScope(BaseForm):
     """A filesystem scope for permission checks."""
 
-    path: Path
+    path: pathlib.Path
     glob: str = "*"
 
 

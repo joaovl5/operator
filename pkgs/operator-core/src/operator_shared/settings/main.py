@@ -6,10 +6,10 @@ from urllib.parse import quote
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .utils import default_operator_settings_path, load_optional_toml
+from .utils import default_config_path, load_optional_toml
 
 if TYPE_CHECKING:
-    from .types import OperatorSettingsPath
+    from .types import OperatorSettingsPath, OperatorSettingsSource
 
 
 DEFAULT_CALLBACK_BIND_HOST = "localhost"
@@ -48,7 +48,7 @@ class OAuthSettings(BaseModel):
 
 
 class OperatorSettings(BaseModel):
-    """Top-level settings loaded from the canonical `operator.toml` file."""
+    """Top-level settings loaded from the canonical `config.toml` file."""
 
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
@@ -56,7 +56,12 @@ class OperatorSettings(BaseModel):
 
 
 def load_operator_settings(*, path: OperatorSettingsPath | None = None) -> OperatorSettings:
-    """Load `operator.toml` when present and validate it as `OperatorSettings`."""
-    settings_path = default_operator_settings_path() if path is None else Path(path)
+    """Load `config.toml` when present and validate it as `OperatorSettings`."""
+    settings_path = default_config_path() if path is None else Path(path)
     document = load_optional_toml(path=settings_path)
-    return OperatorSettings.model_validate(document)
+    return OperatorSettings.model_validate(_shared_settings_document(document))
+
+
+def _shared_settings_document(document: OperatorSettingsSource) -> dict[str, object]:
+    oauth = document.get("oauth")
+    return {"oauth": oauth} if oauth is not None else {}

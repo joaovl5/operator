@@ -1,6 +1,6 @@
 """Session service schemas."""
 
-from datetime import datetime  # noqa: TC003
+from datetime import datetime
 from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict

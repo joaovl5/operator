@@ -1,11 +1,11 @@
 """Mail service schemas."""
 
-from datetime import datetime  # noqa: TC003
+from datetime import datetime
 from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from operator_db.constants.mail import MailMessageState  # noqa: TC001
+from operator_db.constants.mail import MailMessageState
 
 
 class MailSchema(BaseModel):

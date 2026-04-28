@@ -1,0 +1,19 @@
+[database]
+  url = "sqlite+aiosqlite:///.operator/operator.sqlite3"
+
+[agent]
+  # Optional agent-specific prompt appended after Operator's core system prompt.
+  system_prompt = ""
+
+[model]
+  # Copy this file to ignored `config.toml` and replace the API key locally.
+  # Z.AI Coding Plan endpoint: https://api.z.ai/api/coding/paas/v4/
+  provider    = "zai"
+  name        = "GLM-4.7"
+  temperature = 0.1
+  api_key     = "replace-with-your-zai-api-key"
+  base_url    = "https://api.z.ai/api/coding/paas/v4/"
+
+[oauth.callback]
+  port = 1455
+  path = "/auth/callback"

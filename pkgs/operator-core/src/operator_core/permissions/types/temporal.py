@@ -1,12 +1,9 @@
-from typing import TYPE_CHECKING
+from datetime import datetime
 
 from pydantic import Field
 
 from operator_core.permissions.types.permission import PermissionItem, PermissionType
 from operator_shared.forms import BaseForm
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class _BaseTemporalScope(BaseForm):

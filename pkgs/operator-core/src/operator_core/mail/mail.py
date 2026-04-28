@@ -1,12 +1,9 @@
+import datetime as dt
 from enum import StrEnum
-from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
 from operator_shared.time.utils import mk_time
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 DEFAULT_USER_RECIPIENT_ID = "user"
 
@@ -31,7 +28,7 @@ class MailMessageContents(BaseModel):
 class MailMessage(BaseModel):
     sent_from: MailRecipient
     sent_to: list[MailRecipient]
-    sent_at: datetime = Field(default_factory=mk_time)
+    sent_at: dt.datetime = Field(default_factory=mk_time)
 
     contents: MailMessageContents
 
@@ -40,7 +37,7 @@ class RenderedMailMessage(BaseModel):
     """Mail message from some perspective."""
 
     author: MailRecipient
-    time: datetime
+    time: dt.datetime
     contents: MailMessageContents
 
 

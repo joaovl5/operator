@@ -84,7 +84,7 @@ async def file_write(req: FileWriteRequest) -> FileWriteResponse:
                 )
 
         async with await path.open(mode="w") as f:
-            _ = f.write(req.contents)
+            _ = await f.write(req.contents)
             return FileWriteSuccess()
     except OSError as e:
         return FileWriteError(

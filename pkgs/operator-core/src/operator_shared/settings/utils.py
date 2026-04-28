@@ -10,9 +10,14 @@ if TYPE_CHECKING:
     from .types import OperatorSettingsSource
 
 
+def default_config_path() -> Path:
+    """Return the canonical `config.toml` path for the current workspace."""
+    return Path("config.toml")
+
+
 def default_operator_settings_path() -> Path:
-    """Return the canonical `operator.toml` path for the current workspace."""
-    return Path("operator.toml")
+    """Return the canonical Operator config path."""
+    return default_config_path()
 
 
 def load_optional_toml(*, path: Path) -> OperatorSettingsSource:

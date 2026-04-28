@@ -1,6 +1,6 @@
 """Runtime-local agent type aliases and models."""
 
-from typing import TYPE_CHECKING
+import datetime as dt
 
 from pydantic import BaseModel, Field
 
@@ -13,9 +13,6 @@ from operator_core.mail.mail import (
 )
 from operator_shared.time.utils import mk_time
 
-if TYPE_CHECKING:
-    from datetime import datetime
-
 ORCHESTRATOR_ID = "orchestrator"
 
 
@@ -23,9 +20,9 @@ class UserMessage(BaseModel):
     """Message object for direct communication to an agent."""
 
     contents: str
-    target_agent_id: str = Field(ORCHESTRATOR_ID)
-    source_user_id: str = Field(DEFAULT_USER_RECIPIENT_ID)
-    sent_at: datetime = Field(default_factory=mk_time)
+    target_agent_id: str = Field(default=ORCHESTRATOR_ID)
+    source_user_id: str = Field(default=DEFAULT_USER_RECIPIENT_ID)
+    sent_at: dt.datetime = Field(default_factory=mk_time)
 
     def to_mail_message(self) -> MailMessage:
         """Convert this user-given message into the more generic `MailMessage` type."""
