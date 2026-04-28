@@ -1,3 +1,5 @@
+"""Database sizing constants."""
+
 SHORT_STR_LEN = 50
 TITLE_MAX_LEN = 200
 DESCRIPTION_MAX_LEN = 1_000

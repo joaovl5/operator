@@ -1,3 +1,5 @@
+"""History message role constants."""
+
 from enum import StrEnum
 
 

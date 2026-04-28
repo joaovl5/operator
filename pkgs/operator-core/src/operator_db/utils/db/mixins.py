@@ -10,7 +10,8 @@ from operator_db.constants import (
     TITLE_MAX_LEN,
     VERY_LONG_MAX_LEN,
 )
-from operator_db.models.json import JSONColumn, JsonObject
+from operator_db.utils.db.json import JSONColumn
+from operator_db.utils.json import JsonObject
 
 ReqStr = Annotated[
     str,

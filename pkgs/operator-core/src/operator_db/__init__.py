@@ -1,1 +1,24 @@
 """Abstracts DB-related stuff from rest of core logic."""
+
+from operator_db.objects import (
+    HistoryEnt,
+    HistoryEpochEnt,
+    HistoryEpochMessageEnt,
+    MailboxMapping,
+    MailMessageEnt,
+    SessionAgentEnt,
+    SessionEnt,
+)
+from operator_db.utils.db import Base, Entity
+
+__all__ = [
+    "Base",
+    "Entity",
+    "HistoryEnt",
+    "HistoryEpochEnt",
+    "HistoryEpochMessageEnt",
+    "MailMessageEnt",
+    "MailboxMapping",
+    "SessionAgentEnt",
+    "SessionEnt",
+]
