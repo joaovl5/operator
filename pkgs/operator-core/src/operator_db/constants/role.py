@@ -2,6 +2,21 @@
 
 from enum import StrEnum
 
+from pydantic import BaseModel, Field
+
+
+class ToolReturnJSONPart(BaseModel):
+    url: str | None = None
+    data: str | bytes | None = None
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+
+class ToolReturnJSON(BaseModel):
+    """Model for (de)serializing tool return in DB."""
+
+    tool_name: str
+    content: list[ToolReturnJSONPart]
+
 
 class HistoryMessageRole(StrEnum):
     """Role of author in a history message."""

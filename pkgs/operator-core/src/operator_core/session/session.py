@@ -3,15 +3,16 @@ from typing import TYPE_CHECKING
 from anyio import Path
 from attrs import Factory, define
 
-from operator_core.agent.main import OpAgent, PermissionGroup
+from operator_core.agent.main import OpAgent
 from operator_core.agent.types import ORCHESTRATOR_ID, UserMessage
 from operator_core.permissions import (
     FilesystemScope,
     Permission,
+    PermissionGroup,
     PermissionType,
     TemporalScope,
 )
-from operator_core.session.errors import SessionMissingAgentError
+from operator_core.session.errors import SessionAgentUnavailableError, SessionMissingAgentError
 from operator_shared.time.utils import mk_time
 
 if TYPE_CHECKING:
@@ -38,7 +39,9 @@ def get_orchestrator_perms() -> PermissionGroup:
 def get_orchestrator_agent() -> OpAgent:
     """Create Orchestrator `OpAgent`."""
     return OpAgent(
+        id=ORCHESTRATOR_ID,
         model=...,  # pyright: ignore[reportArgumentType]
+        system_prompt="",
         permissions=get_orchestrator_perms(),
     )
 
@@ -66,14 +69,36 @@ class Session:
         self.mailbox.add(
             msg=msg.to_mail_message(),
         )
-        await self.agent_turn(agent_id=msg.target_agent_id)
+        await self.agent_loop(agent_id=msg.target_agent_id)
 
-    async def agent_turn(self, agent_id: str) -> None:
-        """Acquire agent for running a single step."""
+    async def _verify_agent_may_run(self, _agent: OpAgent) -> None:
+        """Verifies an agent can proceed to a turn. (Currently a stub).
+
+        This is done for checking:
+        - is context window near exhaustion?
+        - is max turn count reached?
+
+        In these circumstances, special exceptions are raised for handling cases:
+        - context needs compaction: raise a SessionRequiresCompaction signal
+        - max turn count reached: raise a SessionTurnsExhausted signal
+        """
+
+    async def agent_loop(self, agent_id: str) -> None:
+        """Does agent turns (mostly) indefinitely."""
         agent = self.agents.get(agent_id)
         if agent is None:
             raise SessionMissingAgentError
+        if agent.lock.locked():
+            raise SessionAgentUnavailableError
         async with agent.lock:
-            agent_res = await agent.agent.run(
+            _agent_res = await agent.agent.run(
                 message_history=[],
             )
+            should_continue = True
+            while should_continue:
+                await self.agent_turn(agent=agent)
+
+    async def agent_turn(self, agent: OpAgent) -> None:
+        """Acquire agent for running a single step."""
+        await self._verify_agent_may_run(agent)
+        await agent.run()

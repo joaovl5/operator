@@ -14,7 +14,7 @@ class _BaseTemporalScope(BaseForm):
         """Wrap temporal scope in a permission, yielding a `PermissionItem`."""
         return PermissionItem(
             permission=perm,
-            temporal_scope=self,  # pyright: ignore[reportArgumentType]  handle later
+            temporal_scope=self,
         )
 
 

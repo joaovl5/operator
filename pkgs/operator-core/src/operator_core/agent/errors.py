@@ -1,3 +1,7 @@
 """Operator agent package errors."""
 
-__all__: list[str] = []
+
+class OpAgentError(RuntimeError): ...
+
+
+class OpAgentMessageError(RuntimeError): ...

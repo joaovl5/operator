@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 from operator_shared.forms import BaseForm
 
 from .communication import Communication, CommunicationState
-from .temporal import TemporalScopeType  # noqa: TC001
 
 if TYPE_CHECKING:
     from anyio import Path
@@ -55,7 +54,7 @@ class PermissionItem(BaseForm):
     """Permission instance with additional metadata."""
 
     permission: PermissionType
-    temporal_scope: TemporalScopeType
+    temporal_scope: BaseForm
 
 
 class PermissionGroup(BaseForm):

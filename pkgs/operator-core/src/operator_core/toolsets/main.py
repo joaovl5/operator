@@ -10,7 +10,7 @@ from operator_shared.forms import BaseForm
 
 
 class FileReadRequest(BaseForm):
-    path: Path = Field(description="Path to file to be read")
+    path: str = Field(description="Path to file to be read")
 
 
 class FileReadSuccess(ToolSuccess):
@@ -26,16 +26,17 @@ type FileReadResponse = FileReadError | FileReadSuccess
 async def file_read(req: FileReadRequest) -> FileReadResponse:
     """Reads a file."""
     try:
-        if not await req.path.exists():
+        path = Path(req.path)
+        if not await path.exists():
             return FileReadError(
                 error_code="file_missing",
                 error_detail="Specified path doesn't exist",
             )
-        if not await req.path.is_file():
+        if not await path.is_file():
             return FileReadError(
                 error_code="not_file", error_detail="Specified path doesn't belong to a file"
             )
-        async with await req.path.open(mode="r") as f:
+        async with await path.open(mode="r") as f:
             data: str = await f.read()
             return FileReadSuccess(
                 contents=data,
@@ -48,7 +49,7 @@ async def file_read(req: FileReadRequest) -> FileReadResponse:
 
 
 class FileWriteRequest(BaseForm):
-    path: Path = Field(description="Path to file for writing.")
+    path: str = Field(description="Path to file for writing.")
     contents: str = Field(description="Contents of file to be written.")
 
 
@@ -67,13 +68,14 @@ async def file_write(req: FileWriteRequest) -> FileWriteResponse:
     Will give an error if attempting to edit/overwrite an existing file, use 'file_edit' instead.
     """
     try:
-        if await req.path.exists():
-            if not await req.path.is_file():
+        path = Path(req.path)
+        if await path.exists():
+            if not await path.is_file():
                 return FileWriteError(
                     error_code="not_file",
                     error_detail="Specified path already exists and does not belong to a file.",
                 )
-            async with await req.path.open(mode="r") as f:
+            async with await path.open(mode="r") as f:
                 content_len = len(await f.read())
             if content_len > 0:  # edge case of empty files being allowed
                 return FileWriteError(
@@ -81,7 +83,7 @@ async def file_write(req: FileWriteRequest) -> FileWriteResponse:
                     error_detail="Cannot use this tool for writing into an already-existing file!",
                 )
 
-        async with await req.path.open(mode="w") as f:
+        async with await path.open(mode="w") as f:
             _ = f.write(req.contents)
             return FileWriteSuccess()
     except OSError as e:
@@ -98,7 +100,7 @@ class FileSearchRequest(BaseForm):
 
 
 class FileSearchSuccess(ToolSuccess):
-    files: set[Path] = Field(description="Paths of files matching search queries")
+    files: set[str] = Field(description="Paths of files matching search queries")
 
 
 class FileSearchError(ToolError): ...
@@ -127,15 +129,15 @@ async def file_search(req: FileSearchRequest) -> FileSearchResponse:
         )
 
     try:
-        matches: set[Path] = set()
+        matches: set[str] = set()
 
-        async def _fetch_path_matches(query: str):
-            partial_set: set[Path] = set()
+        async def _fetch_path_matches(query: str) -> set[str]:
+            partial_set: set[str] = set()
             async for match in CWD_STUB.rglob(pattern=query):
-                partial_set.add(match)
+                partial_set.add(str(match))
             return partial_set
 
-        match_tasks: list[Task[set[Path]]] = [
+        match_tasks: list[Task[set[str]]] = [
             create_task(
                 _fetch_path_matches(q),
             )

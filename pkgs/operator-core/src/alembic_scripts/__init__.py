@@ -1,0 +1,1 @@
+"""Alembic scripts package."""
