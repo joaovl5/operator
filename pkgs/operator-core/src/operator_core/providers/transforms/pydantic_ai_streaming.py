@@ -1,0 +1,115 @@
+"""PydanticAI streaming event adapters."""
+
+from typing import TYPE_CHECKING
+
+from pydantic_ai import (
+    BuiltinToolCallPart,
+    BuiltinToolReturnPart,
+    FilePart,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    PartDeltaEvent,
+    PartEndEvent,
+    PartStartEvent,
+    RetryPromptPart,
+    TextPart,
+    TextPartDelta,
+    ThinkingPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
+
+from operator_core.agent.streaming import (
+    AgentStreamEvent,
+    AgentStreamSink,
+    StreamPartFinished,
+    StreamPartStarted,
+    StreamTextDelta,
+    StreamToolCallFinished,
+    StreamToolCallStarted,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterable
+
+
+class PydanticAIStreamTransform:
+    """Translate PydanticAI stream events into transient Operator stream events."""
+
+    async def forward_events(
+        self,
+        *,
+        events: AsyncIterable[object],
+        sink: AgentStreamSink,
+    ) -> None:
+        """Forward translated stream events to a sink."""
+        async for event in events:
+            for stream_event in _stream_events_from_provider(event):
+                await sink(event=stream_event)
+
+
+def _stream_events_from_provider(event: object) -> list[AgentStreamEvent]:
+    stream_events: list[AgentStreamEvent] = []
+    match event:
+        case PartStartEvent(index=index, part=part):
+            stream_events.append(StreamPartStarted(part_index=index, part_kind=_part_kind(part)))
+            if isinstance(part, TextPart) and part.content:
+                stream_events.append(StreamTextDelta(part_index=index, content_delta=part.content))
+        case PartDeltaEvent(index=index, delta=TextPartDelta(content_delta=content_delta)):
+            if content_delta:
+                stream_events.append(StreamTextDelta(part_index=index, content_delta=content_delta))
+        case PartEndEvent(index=index, part=part):
+            stream_events.append(StreamPartFinished(part_index=index, part_kind=_part_kind(part)))
+        case FunctionToolCallEvent(part=part):
+            stream_events.append(
+                StreamToolCallStarted(
+                    tool_call_id=part.tool_call_id,
+                    tool_name=part.tool_name,
+                ),
+            )
+        case FunctionToolResultEvent(result=result):
+            stream_events.append(_tool_call_finished_event(result))
+        case _:
+            pass
+    return stream_events
+
+
+def _tool_call_finished_event(result: ToolReturnPart | RetryPromptPart) -> StreamToolCallFinished:
+    match result:
+        case ToolReturnPart():
+            return StreamToolCallFinished(
+                tool_call_id=result.tool_call_id,
+                tool_name=result.tool_name,
+                outcome=result.outcome,
+            )
+        case RetryPromptPart():
+            return StreamToolCallFinished(
+                tool_call_id=result.tool_call_id,
+                tool_name=result.tool_name,
+                outcome="retry",
+            )
+
+
+def _part_kind(part: object) -> str:
+    part_kind: str
+    match part:
+        case TextPart():
+            part_kind = "text"
+        case ThinkingPart():
+            part_kind = "thinking"
+        case BuiltinToolCallPart():
+            part_kind = "builtin_tool_call"
+        case BuiltinToolReturnPart():
+            part_kind = "builtin_tool_return"
+        case ToolCallPart():
+            part_kind = "tool_call"
+        case ToolReturnPart():
+            part_kind = "tool_return"
+        case FilePart():
+            part_kind = "file"
+        case _:
+            part_kind = type(part).__name__
+    return part_kind
+
+
+__all__ = ["PydanticAIStreamTransform"]

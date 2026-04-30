@@ -23,7 +23,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 from pydantic_ai.usage import RequestUsage
-from pydantic_core import ErrorDetails
+from pydantic_core import ErrorDetails, PydanticSerializationError
 
 from operator_core.providers.transforms.errors import (
     ProviderTransformError,
@@ -51,7 +51,11 @@ from operator_shared.providers.transforms import (
 
 _ERROR_DETAILS_ADAPTER: TypeAdapter[list[ErrorDetails]] = TypeAdapter(list[ErrorDetails])
 _JSON_OBJECT_ADAPTER: TypeAdapter[JsonObject] = TypeAdapter(JsonObject)
+_JSON_SAFE_ADAPTER: TypeAdapter[object] = TypeAdapter(object)
 _JSON_VALUE_ADAPTER: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
+_TOOL_RETURN_PART_ADAPTER: TypeAdapter[ToolReturnPart | BuiltinToolReturnPart] = TypeAdapter(
+    ToolReturnPart | BuiltinToolReturnPart
+ )
 
 
 class PydanticAIMessageTransform(ProviderMessageTransform[ModelMessage]):
@@ -219,7 +223,7 @@ def _request_part_from_provider(part: ModelRequestPart) -> OperatorRequestPart:
                 tool_name=part.tool_name,
                 content=_json_value(part.content),
                 tool_call_id=part.tool_call_id,
-                metadata=_optional_json_value(part.metadata),
+                metadata=_tool_return_metadata(part),
                 timestamp=part.timestamp,
                 outcome=part.outcome,
             )
@@ -273,7 +277,7 @@ def _response_part_from_provider(part: ModelResponsePart) -> OperatorResponsePar
                 tool_name=part.tool_name,
                 content=_json_value(part.content),
                 tool_call_id=part.tool_call_id,
-                metadata=_optional_json_value(part.metadata),
+                metadata=_tool_return_metadata(part),
                 timestamp=part.timestamp,
                 outcome=part.outcome,
                 provider_name=part.provider_name,
@@ -345,24 +349,28 @@ def _optional_json_object(value: object) -> JsonObject | None:
     return _json_object(value)
 
 
-def _optional_json_value(value: object) -> JsonValue:
-    if value is None:
-        return None
-    return _json_value(value)
 
 
 def _json_object(value: object) -> JsonObject:
     try:
-        return _JSON_OBJECT_ADAPTER.validate_python(value)
-    except ValidationError as error:
+        return _JSON_OBJECT_ADAPTER.validate_json(_JSON_SAFE_ADAPTER.dump_json(value))
+    except (PydanticSerializationError, ValidationError) as error:
         raise UnsupportedProviderMessageError from error
 
 
 def _json_value(value: object) -> JsonValue:
     try:
-        return _JSON_VALUE_ADAPTER.validate_python(value)
-    except ValidationError as error:
+        return _JSON_VALUE_ADAPTER.validate_json(_JSON_SAFE_ADAPTER.dump_json(value))
+    except (PydanticSerializationError, ValidationError) as error:
         raise UnsupportedProviderMessageError from error
+
+
+def _tool_return_metadata(part: ToolReturnPart | BuiltinToolReturnPart) -> JsonValue:
+    try:
+        payload = _JSON_OBJECT_ADAPTER.validate_json(_TOOL_RETURN_PART_ADAPTER.dump_json(part))
+    except (PydanticSerializationError, ValidationError) as error:
+        raise UnsupportedProviderMessageError from error
+    return payload.get("metadata")
 
 
 def _now() -> datetime:

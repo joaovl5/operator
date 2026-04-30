@@ -7,11 +7,13 @@ from operator_core.providers.transforms.errors import (
 from operator_core.providers.transforms.history import HistoryMessageTransform
 from operator_core.providers.transforms.main import ProviderMessageTransform
 from operator_core.providers.transforms.pydantic_ai import PydanticAIMessageTransform
+from operator_core.providers.transforms.pydantic_ai_streaming import PydanticAIStreamTransform
 
 __all__ = [
     "HistoryMessageTransform",
     "ProviderMessageTransform",
     "ProviderTransformError",
     "PydanticAIMessageTransform",
+    "PydanticAIStreamTransform",
     "UnsupportedProviderMessageError",
 ]

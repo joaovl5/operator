@@ -7,6 +7,7 @@ from pydantic_ai import Agent
 from operator_core.providers.transforms import (
     HistoryMessageTransform,
     PydanticAIMessageTransform,
+    PydanticAIStreamTransform,
 )
 from operator_core.toolsets.main import file_read, file_search, file_write
 from operator_shared.providers.transforms import (
@@ -17,10 +18,12 @@ from operator_shared.providers.transforms import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import AsyncIterable, Sequence
 
+    from pydantic_ai import AgentStreamEvent
     from pydantic_ai.models import Model
 
+    from operator_core.agent.streaming import AgentStreamSink
     from operator_core.permissions import PermissionGroup
     from operator_db.objects.history.schema import (
         HistoryMessageRequestSchema,
@@ -41,6 +44,7 @@ class OpAgent:
     agent: Agent = field(init=False)
     pydantic_ai_transform: PydanticAIMessageTransform = Factory(PydanticAIMessageTransform)
     history_transform: HistoryMessageTransform = Factory(HistoryMessageTransform)
+    stream_transform: PydanticAIStreamTransform = Factory(PydanticAIStreamTransform)
 
     def __attrs_post_init__(self) -> None:
         """Initialize internal pydantic-ai agent."""
@@ -54,13 +58,26 @@ class OpAgent:
         self,
         *,
         messages: Sequence[HistoryMessageResponseSchema] = (),
+        stream_sink: AgentStreamSink | None = None,
     ) -> list[HistoryMessageRequestSchema]:
         """Run a turn with persisted message history."""
         operator_messages = self.history_transform.to_operator_messages(messages=messages)
         message_history = self.pydantic_ai_transform.to_provider_messages(
             messages=operator_messages,
         )
-        agent_result = await self.agent.run(message_history=message_history)
+        if stream_sink is None:
+            agent_result = await self.agent.run(message_history=message_history)
+        else:
+            async def event_stream_handler(
+                _run_context: object,
+                events: AsyncIterable[AgentStreamEvent],
+            ) -> None:
+                await self.stream_transform.forward_events(events=events, sink=stream_sink)
+
+            agent_result = await self.agent.run(
+                message_history=message_history,
+                event_stream_handler=event_stream_handler,
+            )
         new_messages = self.pydantic_ai_transform.from_provider_messages(
             messages=agent_result.new_messages(),
         )

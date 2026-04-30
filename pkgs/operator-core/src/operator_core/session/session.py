@@ -1,9 +1,18 @@
+from asyncio import CancelledError
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from attrs import Factory, define
 
 from operator_core.agent.main import OpAgent
+from operator_core.agent.streaming import (
+    AgentStreamEvent,
+    StreamPartFinished,
+    StreamPartStarted,
+    StreamTextDelta,
+    StreamToolCallFinished,
+    StreamToolCallStarted,
+)
 from operator_core.agent.types import ORCHESTRATOR_ID, UserMessage
 from operator_core.config import DEFAULT_OPERATOR_SYSTEM_PROMPT, OperatorConfig
 from operator_core.mail.mail import Mailbox
@@ -21,8 +30,15 @@ from operator_core.session.errors import (
     SessionPersistenceUnavailableError,
 )
 from operator_core.session.events import (
+    AgentRunCancelled,
+    AgentRunFailed,
     AgentRunFinished,
     AgentRunStarted,
+    AgentStreamPartFinished,
+    AgentStreamPartStarted,
+    AgentStreamTextDelta,
+    AgentStreamToolCallFinished,
+    AgentStreamToolCallStarted,
     AgentTurnFinished,
     AgentTurnStarted,
     HistoryLoaded,
@@ -238,7 +254,30 @@ class Session:
                 replay_message_count=len(messages),
             ),
         )
-        history_requests = await agent.run(messages=messages)
+        async def stream_sink(*, event: AgentStreamEvent) -> None:
+            await self._emit_agent_stream_event(
+                agent_id=agent.id,
+                history_id=history_id,
+                event=event,
+            )
+
+        try:
+            history_requests = await agent.run(messages=messages, stream_sink=stream_sink)
+        except CancelledError:
+            await self._emit_event(
+                event=AgentRunCancelled(agent_id=agent.id, history_id=history_id),
+            )
+            raise
+        except Exception as error:
+            await self._emit_event(
+                event=AgentRunFailed(
+                    agent_id=agent.id,
+                    history_id=history_id,
+                    error_type=type(error).__name__,
+                    error_message=str(error),
+                ),
+            )
+            raise
         await self._emit_event(
             event=AgentRunFinished(
                 agent_id=agent.id,
@@ -337,6 +376,57 @@ class Session:
             request=request,
             db_session=self._require_db_session(),
         )
+
+    async def _emit_agent_stream_event(
+        self,
+        *,
+        agent_id: str,
+        history_id: str,
+        event: AgentStreamEvent,
+    ) -> None:
+        match event:
+            case StreamPartStarted(part_index=part_index, part_kind=part_kind):
+                session_event = AgentStreamPartStarted(
+                    agent_id=agent_id,
+                    history_id=history_id,
+                    part_index=part_index,
+                    part_kind=part_kind,
+                )
+            case StreamTextDelta(part_index=part_index, content_delta=content_delta):
+                session_event = AgentStreamTextDelta(
+                    agent_id=agent_id,
+                    history_id=history_id,
+                    part_index=part_index,
+                    content_delta=content_delta,
+                )
+            case StreamPartFinished(part_index=part_index, part_kind=part_kind):
+                session_event = AgentStreamPartFinished(
+                    agent_id=agent_id,
+                    history_id=history_id,
+                    part_index=part_index,
+                    part_kind=part_kind,
+                )
+            case StreamToolCallStarted(tool_call_id=tool_call_id, tool_name=tool_name):
+                session_event = AgentStreamToolCallStarted(
+                    agent_id=agent_id,
+                    history_id=history_id,
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                )
+            case StreamToolCallFinished(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                outcome=outcome,
+            ):
+                session_event = AgentStreamToolCallFinished(
+                    agent_id=agent_id,
+                    history_id=history_id,
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    outcome=outcome,
+                )
+        await self._emit_event(event=session_event)
+
 
     async def _emit_event(self, *, event: SessionEvent) -> None:
         if self.event_sink is not None:
