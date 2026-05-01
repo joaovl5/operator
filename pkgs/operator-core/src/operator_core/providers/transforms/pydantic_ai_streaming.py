@@ -1,5 +1,6 @@
 """PydanticAI streaming event adapters."""
 
+import json
 from typing import TYPE_CHECKING
 
 from pydantic_ai import (
@@ -63,6 +64,7 @@ def _stream_events_from_provider(event: object) -> list[AgentStreamEvent]:
                 StreamToolCallStarted(
                     tool_call_id=part.tool_call_id,
                     tool_name=part.tool_name,
+                    args=_preview_value(part.args),
                 ),
             ]
         case FunctionToolResultEvent(result=result):
@@ -99,12 +101,14 @@ def _tool_call_finished_event(result: ToolReturnPart | RetryPromptPart) -> Strea
                 tool_call_id=result.tool_call_id,
                 tool_name=result.tool_name,
                 outcome=result.outcome,
+                result=_preview_value(result.content),
             )
         case RetryPromptPart():
             return StreamToolCallFinished(
                 tool_call_id=result.tool_call_id,
                 tool_name=result.tool_name,
                 outcome="retry",
+                result=_preview_value(result.content),
             )
 
 
@@ -128,6 +132,19 @@ def _part_kind(part: object) -> str:
         case _:
             part_kind = type(part).__name__
     return part_kind
+
+
+def _preview_value(value: object, *, max_chars: int = 2_000) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        preview = value
+    else:
+        preview = json.dumps(value, default=str, ensure_ascii=False, sort_keys=True)
+    if len(preview) <= max_chars:
+        return preview
+    omitted = len(preview) - max_chars
+    return f"{preview[:max_chars]}... <truncated {omitted} chars>"
 
 
 __all__ = ["PydanticAIStreamTransform"]

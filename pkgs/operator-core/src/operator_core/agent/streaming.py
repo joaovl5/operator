@@ -43,6 +43,7 @@ class StreamToolCallStarted:
 
     tool_call_id: str
     tool_name: str
+    args: str | None = None
 
 
 @define(frozen=True, kw_only=True)
@@ -52,6 +53,7 @@ class StreamToolCallFinished:
     tool_call_id: str
     tool_name: str | None
     outcome: str
+    result: str | None = None
 
 
 type AgentStreamEvent = (

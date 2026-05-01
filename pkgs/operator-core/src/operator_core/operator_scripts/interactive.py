@@ -1,6 +1,7 @@
 """Tiny interactive CLI for manually testing the base session loop."""
 
 import asyncio
+import sys
 from time import perf_counter
 from typing import TYPE_CHECKING
 
@@ -60,7 +61,10 @@ def main() -> None:
     """Run the interactive chat CLI using `config.toml`."""
     rprint("[bold cyan]operator-chat[/bold cyan] [dim]loading config.toml[/dim]")
     config = get_config()
-    asyncio.run(run_interactive_chat(config=config))
+    try:
+        asyncio.run(run_interactive_chat(config=config))
+    except KeyboardInterrupt:
+        rprint("\n[yellow]interrupted[/yellow]")
 
 
 async def run_interactive_chat(*, config: OperatorConfig) -> None:
@@ -86,7 +90,11 @@ async def run_interactive_chat(*, config: OperatorConfig) -> None:
         )
         rprint(f"[dim]session_id={session.session_id}[/dim]")
         while True:
-            user_input = await asyncio.to_thread(input, "you> ")
+            try:
+                user_input = await _read_user_input("you> ")
+            except EOFError:
+                rprint("[yellow]bye[/yellow]")
+                return
             if user_input.strip() in _EXIT_COMMANDS:
                 rprint("[yellow]bye[/yellow]")
                 return
@@ -104,6 +112,36 @@ async def run_interactive_chat(*, config: OperatorConfig) -> None:
     finally:
         rprint("[blue]db[/blue] disposing engine")
         await engine.dispose()
+
+
+async def _read_user_input(prompt: str) -> str:
+    """Read one stdin line without creating a blocking executor thread.
+
+    ``asyncio.to_thread(input, ...)`` leaves ``input`` blocked after cancellation, and
+    ``asyncio.run`` waits for that default-executor thread during shutdown. Using the
+    event loop's stdin reader lets a single Ctrl-C cancel and exit promptly.
+    """
+    _ = sys.stdout.write(prompt)
+    _ = sys.stdout.flush()
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def _on_stdin_ready() -> None:
+        if future.done():
+            return
+        try:
+            future.set_result(sys.stdin.readline())
+        except Exception as error:  # noqa: BLE001 - surface stdin errors through the future
+            future.set_exception(error)
+
+    loop.add_reader(sys.stdin.fileno(), _on_stdin_ready)
+    try:
+        line = await future
+    finally:
+        _ = loop.remove_reader(sys.stdin.fileno())
+    if line == "":
+        raise EOFError
+    return line.removesuffix("\n")
 
 
 def _render_agent_text(*, messages: Sequence[HistoryMessageResponseSchema]) -> str | None:
@@ -223,17 +261,23 @@ class _RichSessionEventSink:
             case AgentStreamPartFinished(part_kind="thinking"):
                 self._close_stream_line()
                 rprint("[dim]model thinking complete[/dim]")
-            case AgentStreamToolCallStarted(tool_name=tool_name, tool_call_id=tool_call_id):
-                self._print_tool_started(tool_name=tool_name, tool_call_id=tool_call_id)
+            case AgentStreamToolCallStarted(
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
+                args=args,
+            ):
+                self._print_tool_started(tool_name=tool_name, tool_call_id=tool_call_id, args=args)
             case AgentStreamToolCallFinished(
                 tool_name=tool_name,
                 tool_call_id=tool_call_id,
                 outcome=outcome,
+                result=result,
             ):
                 self._print_tool_finished(
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                     outcome=outcome,
+                    result=result,
                 )
             case _:
                 pass
@@ -261,11 +305,18 @@ class _RichSessionEventSink:
         rprint(Text(content_delta), end="")
         self._streamed_text = True
 
-    def _print_tool_started(self, *, tool_name: str, tool_call_id: str) -> None:
+    def _print_tool_started(
+        self,
+        *,
+        tool_name: str,
+        tool_call_id: str,
+        args: str | None,
+    ) -> None:
         self._close_stream_line()
+        suffix = f" args={args}" if args else ""
         rprint(
             "[magenta]tool[/magenta] calling "
-            f"[bold]{tool_name}[/bold] [dim]id={tool_call_id}[/dim]",
+            f"[bold]{tool_name}[/bold] [dim]id={tool_call_id}[/dim]{suffix}",
         )
 
     def _print_tool_finished(
@@ -274,12 +325,14 @@ class _RichSessionEventSink:
         tool_name: str | None,
         tool_call_id: str,
         outcome: str,
+        result: str | None,
     ) -> None:
         self._close_stream_line()
+        suffix = f" output={result}" if result else ""
         rprint(
             "[magenta]tool[/magenta] finished "
             f"[bold]{tool_name or '<unknown>'}[/bold] "
-            f"outcome={outcome} [dim]id={tool_call_id}[/dim]",
+            f"outcome={outcome} [dim]id={tool_call_id}[/dim]{suffix}",
         )
 
     def _close_stream_line(self) -> None:

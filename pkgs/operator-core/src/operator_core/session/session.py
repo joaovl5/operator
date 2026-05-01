@@ -164,7 +164,7 @@ class Session:
 
     @property
     def time_elapsed(self) -> timedelta:
-        """Returns elapsed time from `time_start`."""
+        """Returns elapsed time from `time_start` - will reset if restarted."""
         time_now = mk_time()
         return time_now - self.time_start
 
@@ -416,17 +416,19 @@ class Session:
                     part_index=part_index,
                     part_kind=part_kind,
                 )
-            case StreamToolCallStarted(tool_call_id=tool_call_id, tool_name=tool_name):
+            case StreamToolCallStarted(tool_call_id=tool_call_id, tool_name=tool_name, args=args):
                 session_event = AgentStreamToolCallStarted(
                     agent_id=agent_id,
                     history_id=history_id,
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
+                    args=args,
                 )
             case StreamToolCallFinished(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
                 outcome=outcome,
+                result=result,
             ):
                 session_event = AgentStreamToolCallFinished(
                     agent_id=agent_id,
@@ -434,6 +436,7 @@ class Session:
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
                     outcome=outcome,
+                    result=result,
                 )
         await self._emit_event(event=session_event)
 
