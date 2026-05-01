@@ -68,6 +68,16 @@ class AgentStreamTextDelta:
 
 
 @define(frozen=True, kw_only=True)
+class AgentStreamThinkingDelta:
+    """A transient assistant thinking delta streamed from the model."""
+
+    agent_id: str
+    history_id: str
+    part_index: int
+    content_delta: str
+
+
+@define(frozen=True, kw_only=True)
 class AgentStreamPartFinished:
     """A transient model response part finished streaming."""
 
@@ -152,6 +162,7 @@ type SessionEvent = (
     | AgentRunStarted
     | AgentStreamPartStarted
     | AgentStreamTextDelta
+    | AgentStreamThinkingDelta
     | AgentStreamPartFinished
     | AgentStreamToolCallStarted
     | AgentStreamToolCallFinished
@@ -178,6 +189,7 @@ __all__ = [
     "AgentStreamPartFinished",
     "AgentStreamPartStarted",
     "AgentStreamTextDelta",
+    "AgentStreamThinkingDelta",
     "AgentStreamToolCallFinished",
     "AgentStreamToolCallStarted",
     "AgentTurnFinished",

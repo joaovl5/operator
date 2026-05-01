@@ -15,6 +15,7 @@ from pydantic_ai import (
     TextPart,
     TextPartDelta,
     ThinkingPart,
+    ThinkingPartDelta,
     ToolCallPart,
     ToolReturnPart,
 )
@@ -25,6 +26,7 @@ from operator_core.agent.streaming import (
     StreamPartFinished,
     StreamPartStarted,
     StreamTextDelta,
+    StreamThinkingDelta,
     StreamToolCallFinished,
     StreamToolCallStarted,
 )
@@ -49,29 +51,45 @@ class PydanticAIStreamTransform:
 
 
 def _stream_events_from_provider(event: object) -> list[AgentStreamEvent]:
-    stream_events: list[AgentStreamEvent] = []
     match event:
         case PartStartEvent(index=index, part=part):
-            stream_events.append(StreamPartStarted(part_index=index, part_kind=_part_kind(part)))
-            if isinstance(part, TextPart) and part.content:
-                stream_events.append(StreamTextDelta(part_index=index, content_delta=part.content))
-        case PartDeltaEvent(index=index, delta=TextPartDelta(content_delta=content_delta)):
-            if content_delta:
-                stream_events.append(StreamTextDelta(part_index=index, content_delta=content_delta))
+            return _part_started_events(index=index, part=part)
+        case PartDeltaEvent(index=index, delta=delta):
+            return _part_delta_events(index=index, delta=delta)
         case PartEndEvent(index=index, part=part):
-            stream_events.append(StreamPartFinished(part_index=index, part_kind=_part_kind(part)))
+            return [StreamPartFinished(part_index=index, part_kind=_part_kind(part))]
         case FunctionToolCallEvent(part=part):
-            stream_events.append(
+            return [
                 StreamToolCallStarted(
                     tool_call_id=part.tool_call_id,
                     tool_name=part.tool_name,
                 ),
-            )
+            ]
         case FunctionToolResultEvent(result=result):
-            stream_events.append(_tool_call_finished_event(result))
+            return [_tool_call_finished_event(result)]
         case _:
-            pass
+            return []
+
+
+def _part_started_events(*, index: int, part: object) -> list[AgentStreamEvent]:
+    stream_events: list[AgentStreamEvent] = [
+        StreamPartStarted(part_index=index, part_kind=_part_kind(part)),
+    ]
+    if isinstance(part, TextPart) and part.content:
+        stream_events.append(StreamTextDelta(part_index=index, content_delta=part.content))
+    elif isinstance(part, ThinkingPart) and part.content:
+        stream_events.append(StreamThinkingDelta(part_index=index, content_delta=part.content))
     return stream_events
+
+
+def _part_delta_events(*, index: int, delta: object) -> list[AgentStreamEvent]:
+    match delta:
+        case TextPartDelta(content_delta=content_delta) if content_delta:
+            return [StreamTextDelta(part_index=index, content_delta=content_delta)]
+        case ThinkingPartDelta(content_delta=content_delta) if content_delta:
+            return [StreamThinkingDelta(part_index=index, content_delta=content_delta)]
+        case _:
+            return []
 
 
 def _tool_call_finished_event(result: ToolReturnPart | RetryPromptPart) -> StreamToolCallFinished:

@@ -19,6 +19,7 @@ from operator_core.session.events import (
     AgentStreamPartFinished,
     AgentStreamPartStarted,
     AgentStreamTextDelta,
+    AgentStreamThinkingDelta,
     AgentStreamToolCallFinished,
     AgentStreamToolCallStarted,
     AgentTurnFinished,
@@ -40,11 +41,14 @@ if TYPE_CHECKING:
 
 _EXIT_COMMANDS = {":q", ":quit", "exit", "quit"}
 
-type _HistoryEvent = HistoryLoaded | SystemPromptSeeded | UserMessagePersisted | HistoryMessagePersisted
+type _HistoryEvent = (
+    HistoryLoaded | SystemPromptSeeded | UserMessagePersisted | HistoryMessagePersisted
+)
 type _RunEvent = AgentRunStarted | AgentRunFinished | AgentRunFailed | AgentRunCancelled
 type _StreamEvent = (
     AgentStreamPartStarted
     | AgentStreamTextDelta
+    | AgentStreamThinkingDelta
     | AgentStreamPartFinished
     | AgentStreamToolCallStarted
     | AgentStreamToolCallFinished
@@ -121,11 +125,13 @@ class _RichSessionEventSink:
     _streamed_text: bool = False
     _streaming_text_open: bool = False
     _thinking_announced: bool = False
+    _streaming_thinking_open: bool = False
 
     def start_turn_timer(self) -> None:
         self._turn_started_at = perf_counter()
         self._streamed_text = False
         self._streaming_text_open = False
+        self._streaming_thinking_open = False
         self._thinking_announced = False
 
     def consume_streamed_text(self) -> bool:
@@ -143,7 +149,9 @@ class _RichSessionEventSink:
             HistoryLoaded | SystemPromptSeeded | UserMessagePersisted | HistoryMessagePersisted,
         ):
             self._handle_history_event(event=event)
-        elif isinstance(event, AgentRunStarted | AgentRunFinished | AgentRunFailed | AgentRunCancelled):
+        elif isinstance(
+            event, AgentRunStarted | AgentRunFinished | AgentRunFailed | AgentRunCancelled
+        ):
             self._handle_run_event(event=event)
         else:
             self._handle_stream_event(event=event)
@@ -169,7 +177,9 @@ class _RichSessionEventSink:
             case SystemPromptSeeded():
                 rprint("[blue]history[/blue] seeded assembled system prompt")
             case UserMessagePersisted(author_id=author_id):
-                rprint(f"[blue]history[/blue] persisted user prompt author=[bold]{author_id}[/bold]")
+                rprint(
+                    f"[blue]history[/blue] persisted user prompt author=[bold]{author_id}[/bold]"
+                )
             case HistoryMessagePersisted(role=role, message_index=message_index):
                 self._close_stream_line()
                 rprint(
@@ -206,6 +216,8 @@ class _RichSessionEventSink:
                 rprint("[magenta]tool[/magenta] model is preparing a tool call")
             case AgentStreamTextDelta(content_delta=content_delta):
                 self._print_text_delta(content_delta=content_delta)
+            case AgentStreamThinkingDelta(content_delta=content_delta):
+                self._print_thinking_delta(content_delta=content_delta)
             case AgentStreamPartFinished(part_kind="text"):
                 self._close_stream_line()
             case AgentStreamPartFinished(part_kind="thinking"):
@@ -232,8 +244,18 @@ class _RichSessionEventSink:
             rprint("[dim]model thinking...[/dim]")
             self._thinking_announced = True
 
+    def _print_thinking_delta(self, *, content_delta: str) -> None:
+        if not self._streaming_thinking_open:
+            if not self._thinking_announced:
+                self._print_thinking_started()
+            self._close_stream_line()
+            rprint("[dim]thinking>[/dim] ", end="")
+            self._streaming_thinking_open = True
+        rprint(Text(content_delta, style="dim italic"), end="")
+
     def _print_text_delta(self, *, content_delta: str) -> None:
         if not self._streaming_text_open:
+            self._close_stream_line()
             rprint("[bold green]agent>[/bold green] ", end="")
             self._streaming_text_open = True
         rprint(Text(content_delta), end="")
@@ -261,9 +283,10 @@ class _RichSessionEventSink:
         )
 
     def _close_stream_line(self) -> None:
-        if self._streaming_text_open:
+        if self._streaming_text_open or self._streaming_thinking_open:
             rprint()
             self._streaming_text_open = False
+            self._streaming_thinking_open = False
 
     def _elapsed(self) -> str:
         if self._turn_started_at is None:

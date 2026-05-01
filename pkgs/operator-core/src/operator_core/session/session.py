@@ -10,6 +10,7 @@ from operator_core.agent.streaming import (
     StreamPartFinished,
     StreamPartStarted,
     StreamTextDelta,
+    StreamThinkingDelta,
     StreamToolCallFinished,
     StreamToolCallStarted,
 )
@@ -37,6 +38,7 @@ from operator_core.session.events import (
     AgentStreamPartFinished,
     AgentStreamPartStarted,
     AgentStreamTextDelta,
+    AgentStreamThinkingDelta,
     AgentStreamToolCallFinished,
     AgentStreamToolCallStarted,
     AgentTurnFinished,
@@ -254,6 +256,7 @@ class Session:
                 replay_message_count=len(messages),
             ),
         )
+
         async def stream_sink(*, event: AgentStreamEvent) -> None:
             await self._emit_agent_stream_event(
                 agent_id=agent.id,
@@ -399,6 +402,13 @@ class Session:
                     part_index=part_index,
                     content_delta=content_delta,
                 )
+            case StreamThinkingDelta(part_index=part_index, content_delta=content_delta):
+                session_event = AgentStreamThinkingDelta(
+                    agent_id=agent_id,
+                    history_id=history_id,
+                    part_index=part_index,
+                    content_delta=content_delta,
+                )
             case StreamPartFinished(part_index=part_index, part_kind=part_kind):
                 session_event = AgentStreamPartFinished(
                     agent_id=agent_id,
@@ -427,11 +437,9 @@ class Session:
                 )
         await self._emit_event(event=session_event)
 
-
     async def _emit_event(self, *, event: SessionEvent) -> None:
         if self.event_sink is not None:
             await self.event_sink(event=event)
-
 
     def _require_db_session(self) -> DbSession:
         if self.db_session is None:

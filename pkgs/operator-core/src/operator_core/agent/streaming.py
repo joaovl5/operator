@@ -22,6 +22,14 @@ class StreamTextDelta:
 
 
 @define(frozen=True, kw_only=True)
+class StreamThinkingDelta:
+    """A transient streamed assistant thinking delta."""
+
+    part_index: int
+    content_delta: str
+
+
+@define(frozen=True, kw_only=True)
 class StreamPartFinished:
     """A streamed model response part finished."""
 
@@ -49,6 +57,7 @@ class StreamToolCallFinished:
 type AgentStreamEvent = (
     StreamPartStarted
     | StreamTextDelta
+    | StreamThinkingDelta
     | StreamPartFinished
     | StreamToolCallStarted
     | StreamToolCallFinished
@@ -68,6 +77,7 @@ __all__ = [
     "StreamPartFinished",
     "StreamPartStarted",
     "StreamTextDelta",
+    "StreamThinkingDelta",
     "StreamToolCallFinished",
     "StreamToolCallStarted",
 ]
