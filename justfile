@@ -1,5 +1,6 @@
 alias c := check
 check:
+  just format
   uv run ruff check . --quiet --no-cache
   uv run basedpyright
   PYTHONDONTWRITEBYTECODE=1 uv run python -B -m pytest --quiet --verbosity=-1 -p no:cacheprovider

@@ -1,4 +1,4 @@
-"""Provider message transform layer."""
+"""Message transformation layer."""
 
 from operator_core.providers.transforms.errors import (
     ProviderTransformError,

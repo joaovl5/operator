@@ -38,7 +38,7 @@
   typeCheckingMode            = "recommended"
   failOnWarnings              = true
   enableReachabilityAnalysis  = true
-  analyzeUnannotatedFunctions = false
+  analyzeUnannotatedFunctions = true
 
   # keep "Any" for exceptional cases
   reportExplicitAny = false

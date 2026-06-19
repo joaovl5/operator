@@ -21,7 +21,7 @@ _ASYNC_LOCKS_BY_PATH_GUARD = threading.Lock()
 
 
 def atomic_write_json(*, path: Path, payload: object) -> None:
-    """Write JSON to disk using a temporary file and atomic replacement."""
+    """Write JSON to disk through a tempfile with atomic replacement."""
     temp_path: Path | None = None
     try:
         file_descriptor, temp_name = tempfile.mkstemp(

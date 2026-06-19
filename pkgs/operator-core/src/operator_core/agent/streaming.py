@@ -1,8 +1,8 @@
 """Transient agent stream events for UI consumers."""
 
-from typing import Protocol
-
 from attrs import define
+
+from operator_shared.event_sink import EventSink
 
 
 @define(frozen=True, kw_only=True)
@@ -66,11 +66,7 @@ type AgentStreamEvent = (
 )
 
 
-class AgentStreamSink(Protocol):
-    """Receives transient agent stream events."""
-
-    async def __call__(self, *, event: AgentStreamEvent) -> None:
-        """Handle one transient agent stream event."""
+type AgentStreamSink = EventSink[AgentStreamEvent]
 
 
 __all__ = [

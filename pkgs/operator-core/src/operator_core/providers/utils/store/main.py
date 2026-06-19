@@ -4,6 +4,7 @@ import os
 import time
 from typing import TYPE_CHECKING, Self
 
+from attrs import define, field
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from .errors import JsonCredentialStoreCorruptionError, JsonCredentialStoreTransactionError
@@ -22,14 +23,17 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+@define(kw_only=True)
 class JsonCredentialStore[CredentialT: BaseModel]:
     """Persist one pydantic credential model in a lock-coordinated JSON file."""
 
-    def __init__(self, *, model_type: type[CredentialT], path: Path) -> None:
-        """Initialize the store for one credential model type and path."""
-        self._model_type: type[CredentialT] = model_type
-        self.path: Path = path
-        self.lock_path: Path = path.with_name(f"{path.name}.lock")
+    model_type: type[CredentialT]
+    path: Path
+    lock_path: Path = field(init=False)
+
+    def __attrs_post_init__(self) -> None:
+        """Setup computed values."""
+        self.lock_path = self.path.with_name(f"{self.path.name}.lock")
 
     def load(self) -> CredentialT | None:
         """Load stored credentials when present."""
@@ -49,7 +53,7 @@ class JsonCredentialStore[CredentialT: BaseModel]:
             raise self._build_corruption_error(message=message) from error
 
         try:
-            return self._model_type.model_validate(payload_object)
+            return self.model_type.model_validate(payload_object)
         except ValidationError as error:
             message = f"credentials at {self.path} are missing required fields"
             raise self._build_corruption_error(message=message) from error
@@ -83,14 +87,18 @@ class JsonCredentialStore[CredentialT: BaseModel]:
         return JsonCredentialStoreCorruptionError(message)
 
 
+@define(kw_only=True)
 class JsonCredentialStoreTransaction[CredentialT: BaseModel]:
     """Lock-held store transaction for compound credential updates."""
 
-    def __init__(self, *, store: JsonCredentialStore[CredentialT]) -> None:
-        """Initialize a lock-backed transaction for the given store."""
-        self._store: JsonCredentialStore[CredentialT] = store
-        self._lock_acquired: bool = False
-        self._lock_contents: str | None = None
+    store: JsonCredentialStore[CredentialT]
+    _lock_acquired: bool = field(init=False)
+    _lock_contents: str | None = field(init=False)
+
+    def __attrs_post_init__(self) -> None:
+        """Initialize computed values."""
+        self._lock_acquired = False
+        self._lock_contents = None
 
     def __enter__(self) -> Self:
         """Acquire the lock and return the active transaction."""
@@ -106,19 +114,19 @@ class JsonCredentialStoreTransaction[CredentialT: BaseModel]:
     def load(self) -> CredentialT | None:
         """Load credentials while the transaction lock is held."""
         self._ensure_lock_held()
-        return self._store.load()
+        return self.store.load()
 
     def save(self, credentials: CredentialT) -> None:
         """Persist credentials while the transaction lock is held."""
         self._ensure_lock_held()
-        self._store.path.parent.mkdir(parents=True, exist_ok=True)
-        atomic_write_json(path=self._store.path, payload=credentials.model_dump(mode="json"))
+        self.store.path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write_json(path=self.store.path, payload=credentials.model_dump(mode="json"))
 
     def delete(self) -> None:
         """Delete credentials while the transaction lock is held."""
         self._ensure_lock_held()
         try:
-            self._store.path.unlink()
+            self.store.path.unlink()
         except FileNotFoundError:
             return
 
@@ -128,18 +136,18 @@ class JsonCredentialStoreTransaction[CredentialT: BaseModel]:
             raise JsonCredentialStoreTransactionError(message)
 
     def _acquire_lock(self) -> None:
-        self._store.lock_path.parent.mkdir(parents=True, exist_ok=True)
+        self.store.lock_path.parent.mkdir(parents=True, exist_ok=True)
 
         while True:
             lock_contents = build_lock_contents()
             try:
                 file_descriptor = os.open(
-                    self._store.lock_path,
+                    self.store.lock_path,
                     os.O_CREAT | os.O_EXCL | os.O_WRONLY,
                     FILE_MODE_PRIVATE,
                 )
             except FileExistsError:
-                if self._clear_stale_lock_if_needed():
+                if self._check_stale_lock():
                     continue
                 time.sleep(LOCK_RETRY_SLEEP_SECONDS)
                 continue
@@ -153,30 +161,30 @@ class JsonCredentialStoreTransaction[CredentialT: BaseModel]:
             self._lock_contents = lock_contents
             return
 
-    def _clear_stale_lock_if_needed(self) -> bool:
-        lock_snapshot = self._read_lock_snapshot()
-        if lock_snapshot is None:
+    def _check_stale_lock(self) -> bool:
+        lock_data = self._get_lock_data()
+        if lock_data is None:
             return True
 
-        if not lock_snapshot.has_valid_shape:
-            if lock_snapshot.age_ms < LOCK_WRITE_GRACE_MS:
+        if not lock_data.has_valid_shape:
+            if lock_data.age_ms < LOCK_WRITE_GRACE_MS:
                 return False
-            return self._remove_lock_file_if_matches(lock_snapshot.contents)
+            return self._remove_lock_file_if_matches(lock_data.contents)
 
-        if lock_snapshot.age_ms >= STALE_LOCK_AGE_MS:
-            return self._remove_lock_file_if_matches(lock_snapshot.contents)
+        if lock_data.age_ms >= STALE_LOCK_AGE_MS:
+            return self._remove_lock_file_if_matches(lock_data.contents)
 
         return False
 
-    def _read_lock_snapshot(self) -> LockSnapshot | None:
+    def _get_lock_data(self) -> LockSnapshot | None:
         try:
-            stats = self._store.lock_path.stat()
-            contents = self._store.lock_path.read_text(encoding="utf-8")
+            stats = self.store.lock_path.stat()
+            contents = self.store.lock_path.read_text(encoding="utf-8")
         except FileNotFoundError:
             return None
         except OSError:
             try:
-                stats = self._store.lock_path.stat()
+                stats = self.store.lock_path.stat()
             except FileNotFoundError:
                 return None
             contents = ""
@@ -191,19 +199,23 @@ class JsonCredentialStoreTransaction[CredentialT: BaseModel]:
             return False
 
         try:
-            self._store.lock_path.unlink()
+            self.store.lock_path.unlink()
         except FileNotFoundError:
             return True
         except OSError:
             return False
         return True
 
-    def _read_lock_contents(self) -> str | None:
+    def _read_lock_contents(self, *, raise_on_err: bool = False) -> str | None:
         try:
-            return self._store.lock_path.read_text(encoding="utf-8")
+            return self.store.lock_path.read_text(encoding="utf-8")
         except FileNotFoundError:
+            if raise_on_err:
+                raise
             return None
         except OSError:
+            if raise_on_err:
+                raise
             return ""
 
     def _release_lock(self) -> None:

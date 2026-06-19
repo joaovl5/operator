@@ -1,8 +1,8 @@
 """Session lifecycle events for UI and script consumers."""
 
-from typing import Protocol
-
 from attrs import define
+
+from operator_shared.event_sink import EventSink
 
 
 @define(frozen=True, kw_only=True)
@@ -177,11 +177,7 @@ type SessionEvent = (
 )
 
 
-class SessionEventSink(Protocol):
-    """Receives session lifecycle events."""
-
-    async def __call__(self, *, event: SessionEvent) -> None:
-        """Handle one session lifecycle event."""
+type SessionEventSink = EventSink[SessionEvent]
 
 
 @define(kw_only=True)

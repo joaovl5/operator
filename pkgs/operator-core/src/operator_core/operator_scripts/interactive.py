@@ -1,4 +1,4 @@
-"""Tiny interactive CLI for manually testing the base session loop."""
+"""Tiny interactive CLI for quickly testing the base session loop."""
 
 import asyncio
 import sys

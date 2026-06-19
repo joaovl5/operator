@@ -1,0 +1,7 @@
+# Heading
+
+This is an `optemplate` prompt. This text is written in Markdown but `optemplate` works with any file. All text here will be visible and rendered. It is designed to be as simple as possible for its goals.
+
+-#- This is a comment, anything here is omitted from final file
+
+The following is an expression: -*-should_be_visible?"Bla bla bla":"Never shown"-*-

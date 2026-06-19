@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from attrs import Factory, define
 
-from operator_core.agent.main import HistoryMessageRequestSchema, OpAgent
+from operator_core.agent.main import OpAgent
 from operator_core.agent.streaming import (
     AgentStreamEvent,
     StreamPartFinished,
@@ -17,7 +17,6 @@ from operator_core.agent.streaming import (
 )
 from operator_core.agent.types import ORCHESTRATOR_ID, UserMessage
 from operator_core.config import DEFAULT_OPERATOR_SYSTEM_PROMPT, OperatorConfig
-from operator_core.mail.mail import Mailbox
 from operator_core.permissions import (
     FilesystemScope,
     Permission,
@@ -47,7 +46,10 @@ if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
     from operator_db.objects.agent.schema import AgentResponseSchema
-    from operator_db.objects.history.schema import HistoryMessageResponseSchema
+    from operator_db.objects.history.schema import (
+        HistoryMessageRequestSchema,
+        HistoryMessageResponseSchema,
+    )
     from operator_db.objects.session.schema import SessionResponseSchema
     from operator_db.utils.services import DbSession
 
@@ -86,17 +88,12 @@ def get_orchestrator_agent(*, config: OperatorConfig, history_id: str | None = N
     )
 
 
-def _empty_mailbox() -> Mailbox:
-    return Mailbox(messages=[])
-
-
 @define(kw_only=True)
 class Session:
     config: OperatorConfig
     db_session: DbSession | None = None
     session_id: str | None = None
     agents: dict[str, OpAgent] = Factory(dict)  # pyright: ignore[reportUnknownVariableType]
-    mailbox: Mailbox = Factory(_empty_mailbox)
     session_service: SessionService = Factory(SessionService)
     agent_service: SessionAgentService = Factory(SessionAgentService)
     history_service: HistoryService = Factory(HistoryService)
@@ -115,7 +112,6 @@ class Session:
         *,
         config: OperatorConfig,
         db_session: DbSession,
-        mailbox: Mailbox | None = None,
         event_sink: SessionEventSink | None = None,
     ) -> Session:
         """Create a persisted runtime session with its orchestrator agent."""
@@ -139,7 +135,6 @@ class Session:
             db_session=db_session,
             session_id=session_response.id,
             agents={agent.id: agent},
-            mailbox=_empty_mailbox() if mailbox is None else mailbox,
             session_service=session_service,
             agent_service=agent_service,
             event_sink=event_sink,
@@ -153,9 +148,6 @@ class Session:
 
     async def send_user_message(self, msg: UserMessage) -> list[HistoryMessageResponseSchema]:
         """Send an user-sourced message to an agent, prompting/queue-ing agent's turn."""
-        self.mailbox.add(
-            msg=msg.to_mail_message(),
-        )
         return await self._agent_loop(agent_id=msg.target_agent_id, user_message=msg)
 
     async def _check_agent_may_run(self, _agent: OpAgent) -> None:

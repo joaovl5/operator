@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class ModelProvider[ConfigT](ABC):
-    """Represents provider config that builds pydantic-ai models."""
+    """Turns generic model configs into pydantic-ai models."""
 
     @abstractmethod
     def build_model(self, *, model_config: ConfigT) -> Model:

@@ -42,6 +42,9 @@ class Permission:
         can_invoke: bool = True
         can_communicate: CommunicationState = Communication.Allow()
 
+    type Type = Permission.Filesystem.Read | Permission.Filesystem.Edit | Permission.Subagent
+    """Union for kinds of permissions agents may have."""
+
 
 type PermissionType = Permission.Filesystem.Read | Permission.Filesystem.Edit | Permission.Subagent
 """Union for kinds of permissions agents may have."""
@@ -50,7 +53,7 @@ type PermissionType = Permission.Filesystem.Read | Permission.Filesystem.Edit | 
 class PermissionItem(BaseForm):
     """Permission instance with additional metadata."""
 
-    permission: PermissionType
+    permission: Permission.Type
     temporal_scope: BaseForm
 
 

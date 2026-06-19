@@ -106,7 +106,6 @@ complete.**
   - `tests/` next to the module
 - Put shared cross-domain code in `operator_shared`.
 - Prefer `httpx` over `urllib`.
-- Do not implement unfinished or user-WIP areas speculatively. Keep placeholders lint-safe and type-safe instead.
 
 ## Package Ownership
 
