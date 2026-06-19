@@ -60,7 +60,7 @@ from .oauth import (
     refresh_access_token,
     validate_oauth_state,
 )
-from .types import OpenAIModelConfig, OpenAIModelSettings
+from .types import OpenAIModelSettings
 
 __all__ = [
     "AUTH_ERROR_CODES",
@@ -83,7 +83,6 @@ __all__ = [
     "TOKEN_RESPONSE_MISSING_REFRESH_MESSAGE",
     "AuthorizeRequest",
     "BaseOpenAIModelProvider",
-    "OpenAIModelConfig",
     "OpenAIModelProvider",
     "OpenAIModelSettings",
     "OpenAIOAuthCredentials",

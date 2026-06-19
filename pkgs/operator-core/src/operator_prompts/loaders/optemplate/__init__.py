@@ -1,1 +1,0 @@
-"""Logic for OpTemplate format."""

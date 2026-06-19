@@ -10,7 +10,6 @@ from operator_core.providers.transforms import (
     PydanticAIMessageTransform,
     PydanticAIStreamTransform,
 )
-from operator_core.toolsets.main import file_read, file_search, file_write
 from operator_shared.providers.transforms import (
     OperatorMessage,
     OperatorRequestMessage,
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
 
     from operator_core.agent.streaming import AgentStreamSink
     from operator_core.permissions import PermissionGroup
+    from operator_core.toolsets.main import ToolsetPydanticExport
     from operator_db.objects.history.schema import (
         HistoryMessageRequestSchema,
         HistoryMessageResponseSchema,
@@ -66,8 +66,14 @@ class OpAgent:
         self.agent = Agent(
             model=self.model,
             name=self.id,
-            tools=(file_read, file_write, file_search),
         )
+
+    def register_toolsets(
+        self,
+        tools: ToolsetPydanticExport,
+    ) -> None:
+        """Register toolsets to agent."""
+        _ = [self.agent.tool_plain(tool) for tool in tools]
 
     async def run(
         self,

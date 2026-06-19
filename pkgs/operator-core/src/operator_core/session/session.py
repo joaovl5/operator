@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from attrs import Factory, define
+from pydantic import DirectoryPath
 
 from operator_core.agent.main import OpAgent
 from operator_core.agent.streaming import (
@@ -31,6 +32,7 @@ from operator_core.session.errors import (
     SessionPersistenceUnavailableError,
 )
 from operator_core.session.events import AgentEventEmitter, SessionEventSink
+from operator_core.toolsets.main import FileToolset
 from operator_db.objects.agent import AgentRequestSchema, SessionAgentService
 from operator_db.objects.history import HistoryService
 from operator_db.objects.session import SessionRequestSchema, SessionService
@@ -43,7 +45,7 @@ from operator_shared.providers.transforms import (
 from operator_shared.time.utils import mk_time
 
 if TYPE_CHECKING:
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
     from operator_db.objects.agent.schema import AgentResponseSchema
     from operator_db.objects.history.schema import (
@@ -54,10 +56,9 @@ if TYPE_CHECKING:
     from operator_db.utils.services import DbSession
 
 
-def get_orchestrator_perms() -> PermissionGroup:
+def get_orchestrator_perms(cwd: Path) -> PermissionGroup:
     """Gather perms for Orchestrator."""
-    cwd_stub = Path()
-    fs_scope = FilesystemScope(path=cwd_stub)
+    fs_scope = FilesystemScope(path=cwd)
     t_scope = TemporalScope.All()
     perms: list[PermissionType] = [
         Permission.Filesystem.Read(scope=fs_scope),
@@ -77,13 +78,18 @@ def assemble_system_prompt(*, agent_system_prompt: str) -> str:
     return f"{DEFAULT_OPERATOR_SYSTEM_PROMPT}\n\n{agent_prompt}"
 
 
-def get_orchestrator_agent(*, config: OperatorConfig, history_id: str | None = None) -> OpAgent:
+def get_orchestrator_agent(
+    *,
+    config: OperatorConfig,
+    history_id: str | None = None,
+    cwd: Path,
+) -> OpAgent:
     """Create Orchestrator `OpAgent`."""
     return OpAgent(
         id=ORCHESTRATOR_ID,
         model=build_model_from_config(config=config.model),
         system_prompt=assemble_system_prompt(agent_system_prompt=config.agent.system_prompt),
-        permissions=get_orchestrator_perms(),
+        permissions=get_orchestrator_perms(cwd=cwd),
         history_id=history_id,
     )
 
@@ -98,13 +104,27 @@ class Session:
     agent_service: SessionAgentService = Factory(SessionAgentService)
     history_service: HistoryService = Factory(HistoryService)
     event_sink: SessionEventSink | None = None
+    working_directory: DirectoryPath = Factory(Path)
 
     time_start: datetime = Factory(mk_time)
 
     def __attrs_post_init__(self) -> None:
         """Initialize agents, if necessary."""
         if ORCHESTRATOR_ID not in self.agents:
-            self.agents[ORCHESTRATOR_ID] = get_orchestrator_agent(config=self.config)
+            self.agents[ORCHESTRATOR_ID] = get_orchestrator_agent(
+                config=self.config,
+                cwd=self.working_directory,
+            )
+        self._register_tooling()
+
+    def _register_tooling(self) -> None:
+        """Handle registering default tooling to agents."""
+        orch = self.agents[ORCHESTRATOR_ID]
+        orch.register_toolsets(
+            FileToolset(
+                working_directory=self.working_directory,
+            ).export_to_pydantic(),
+        )
 
     @classmethod
     async def create(
@@ -113,15 +133,20 @@ class Session:
         config: OperatorConfig,
         db_session: DbSession,
         event_sink: SessionEventSink | None = None,
+        working_directory: DirectoryPath | None = None,
     ) -> Session:
         """Create a persisted runtime session with its orchestrator agent."""
         session_service = SessionService()
         agent_service = SessionAgentService()
+        working_directory = working_directory or Path()
         session_response = await session_service.create_session(
             request=SessionRequestSchema(),
             db_session=db_session,
         )
-        agent = get_orchestrator_agent(config=config)
+        agent = get_orchestrator_agent(
+            config=config,
+            cwd=working_directory,
+        )
         agent_response = await _create_persisted_agent(
             agent=agent,
             config=config,
@@ -138,13 +163,8 @@ class Session:
             session_service=session_service,
             agent_service=agent_service,
             event_sink=event_sink,
+            working_directory=working_directory,
         )
-
-    @property
-    def time_elapsed(self) -> timedelta:
-        """Returns elapsed time from `time_start` - will reset if restarted."""
-        time_now = mk_time()
-        return time_now - self.time_start
 
     async def send_user_message(self, msg: UserMessage) -> list[HistoryMessageResponseSchema]:
         """Send an user-sourced message to an agent, prompting/queue-ing agent's turn."""

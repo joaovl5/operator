@@ -7,12 +7,12 @@ from operator_core.providers.openai.oauth.settings import (
     OpenAIOAuthModelSettings,
     oauth_responses_settings,
 )
-from operator_core.providers.openai.types import OpenAIModelConfig, OpenAIModelSettings
+from operator_core.providers.openai.types import DirectOpenAIModelConfig, OpenAIModelSettings
 
 
 def test_openai_model_config_validates_settings_as_base_model() -> None:
     """OpenAI settings validate through a serializable BaseModel payload."""
-    config = OpenAIModelConfig.model_validate(
+    config = DirectOpenAIModelConfig.model_validate(
         {
             "name": "gpt-4.1",
             "settings": {"openai_store": True},

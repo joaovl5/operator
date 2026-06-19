@@ -10,7 +10,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 
 from operator_core.providers import ModelProvider
 
-from .types import OpenAIModelConfig
+from .types import DirectOpenAIModelConfig
 
 if TYPE_CHECKING:
     from pydantic_ai import ModelSettings
@@ -23,7 +23,7 @@ def get_openai_client(*, api_key: str | None, base_url: str | None) -> AsyncOpen
 
 
 @define
-class BaseOpenAIModelProvider(ModelProvider[OpenAIModelConfig], ABC):
+class BaseOpenAIModelProvider(ModelProvider[DirectOpenAIModelConfig], ABC):
     """Shared OpenAI provider behavior."""
 
     @abstractmethod
@@ -34,7 +34,7 @@ class BaseOpenAIModelProvider(ModelProvider[OpenAIModelConfig], ABC):
         """Build the shared pydantic-ai provider wrapper."""
         return OpenAIProvider(openai_client=self.get_openai_client())
 
-    def build_model_settings(self, *, model_config: OpenAIModelConfig) -> ModelSettings:
+    def build_model_settings(self, *, model_config: DirectOpenAIModelConfig) -> ModelSettings:
         """Build the model settings payload from the validated config."""
         return model_config.settings.to_model_settings(temperature=model_config.temperature)
 
@@ -51,7 +51,7 @@ class OpenAIModelProvider(BaseOpenAIModelProvider):
         return self.openai_client
 
     @override
-    def build_model(self, *, model_config: OpenAIModelConfig) -> Model:
+    def build_model(self, *, model_config: DirectOpenAIModelConfig) -> Model:
         """Build a chat model for the configured OpenAI client."""
         return OpenAIChatModel(
             model_name=model_config.name,

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Annotated, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from operator_core.providers.generic.types import GenericModelConfig
 from operator_core.providers.openai.oauth import OpenAIOAuthModelConfig, OpenAIOAuthModelSettings
 from operator_core.providers.zai import ZAIModelConfig
 from operator_shared.settings import OAuthSettings
@@ -54,7 +55,11 @@ class OpenAIOAuthRuntimeModelConfig(BaseModel):
 
 
 type OperatorModelConfig = Annotated[
-    OpenAIOAuthRuntimeModelConfig | ZAIModelConfig,
+    (
+        OpenAIOAuthRuntimeModelConfig  # not fully tested yet
+        | ZAIModelConfig
+        | GenericModelConfig
+    ),
     Field(discriminator="provider"),
 ]
 

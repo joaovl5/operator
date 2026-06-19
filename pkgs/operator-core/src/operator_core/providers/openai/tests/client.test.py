@@ -30,7 +30,7 @@ from operator_core.providers.openai.oauth.settings import (
 )
 from operator_core.providers.openai.oauth.store import OpenAIOAuthStore
 from operator_core.providers.openai.oauth.types import OpenAIOAuthCredentials, OpenAITokenResponse
-from operator_core.providers.openai.types import OpenAIModelConfig, OpenAIModelSettings
+from operator_core.providers.openai.types import DirectOpenAIModelConfig, OpenAIModelSettings
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -413,7 +413,7 @@ def test_openai_and_oauth_providers_build_public_model_types(tmp_path: Path) -> 
     openai_model = OpenAIModelProvider(
         openai_client=AsyncOpenAI(api_key="test-api-key")
     ).build_model(
-        model_config=OpenAIModelConfig(
+        model_config=DirectOpenAIModelConfig(
             name="gpt-4.1",
             temperature=0.7,
             settings=OpenAIModelSettings(openai_store=True),
