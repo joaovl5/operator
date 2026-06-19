@@ -18,12 +18,9 @@ from operator_db.constants.role import HistoryMessageRole  # noqa: TC001
 from operator_db.utils.db.base import Entity
 from operator_db.utils.db.json import JSONColumn
 from operator_db.utils.db.mixins import ArbitraryMetadata, MetadataMixin, OptStr, OptStrLong
-from operator_db.utils.json import JsonValue
 
 if TYPE_CHECKING:
     from operator_db.objects.agent.entity import SessionAgentEnt
-
-_JSON_VALUE = JsonValue
 
 
 @final
@@ -161,11 +158,11 @@ class HistoryEpochMessageEnt(Entity):
     )
     """Bytes contents if message is binary-based, like images."""
 
-    json_contents: Mapped[
-        dict[str, object] | list[object] | str | int | float | bool | None
-    ] = mapped_column(
-        JSONColumn,
-        nullable=True,
+    json_contents: Mapped[dict[str, object] | list[object] | str | int | float | bool | None] = (
+        mapped_column(
+            JSONColumn,
+            nullable=True,
+        )
     )
     """JSON contents if message has structured data."""
 

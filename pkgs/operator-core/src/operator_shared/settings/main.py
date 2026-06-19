@@ -64,4 +64,4 @@ def load_operator_settings(*, path: OperatorSettingsPath | None = None) -> Opera
 
 def _shared_settings_document(document: OperatorSettingsSource) -> dict[str, object]:
     oauth = document.get("oauth")
-    return {"oauth": oauth} if oauth is not None else {}
+    return {"oauth": oauth} if oauth   else {}

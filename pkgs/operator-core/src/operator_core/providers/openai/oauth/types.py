@@ -32,12 +32,12 @@ class OpenAIOAuthCredentials(BaseModel):
     def is_expired(self, *, now_ms: int | None = None) -> bool:
         """Report whether the credentials are expired at the given time."""
         current_ms = epoch_ms() if now_ms is None else now_ms
-        return self.expires_at_ms is not None and self.expires_at_ms <= current_ms
+        return self.expires_at_ms   and self.expires_at_ms <= current_ms
 
     def expires_within(self, *, now_ms: int | None = None, buffer_ms: int = 0) -> bool:
         """Report whether the credentials expire within the given buffer."""
         current_ms = epoch_ms() if now_ms is None else now_ms
-        return self.expires_at_ms is not None and self.expires_at_ms <= current_ms + buffer_ms
+        return self.expires_at_ms   and self.expires_at_ms <= current_ms + buffer_ms
 
 
 class OpenAITokenResponse(BaseModel):
@@ -61,17 +61,17 @@ class OpenAITokenResponse(BaseModel):
         """Convert a token response into persisted OAuth credentials."""
         current_ms = epoch_ms() if now_ms is None else now_ms
         expires_at_ms = None
-        if self.expires_in is not None:
+        if self.expires_in  :
             expires_at_ms = current_ms + (self.expires_in * 1000)
 
         refresh_token = self.refresh_token
-        if refresh_token is None and previous_credentials is not None:
+        if refresh_token is None and previous_credentials  :
             refresh_token = previous_credentials.refresh_token
         if refresh_token is None:
             raise OpenAIOAuthProtocolError(TOKEN_RESPONSE_MISSING_REFRESH_MESSAGE)
 
         account_id = extract_account_id_from_id_token(self.id_token)
-        if account_id is None and previous_credentials is not None:
+        if account_id is None and previous_credentials  :
             account_id = previous_credentials.account_id
 
         return OpenAIOAuthCredentials(

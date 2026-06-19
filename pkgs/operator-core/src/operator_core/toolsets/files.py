@@ -1,6 +1,3 @@
-"""File-related toolset."""
-
-from abc import ABC, abstractmethod
 from fnmatch import fnmatch
 from os import walk
 from pathlib import Path as StdPath
@@ -9,22 +6,12 @@ from typing import override
 from anyio import Path
 from attrs import define
 from pydantic import DirectoryPath, Field
-from pydantic_ai.tools import ToolFuncPlain
 
+from operator_core.toolsets.base import BaseToolset, ToolsetPydanticExport
 from operator_core.toolsets.types import ToolError, ToolSuccess
 from operator_shared.forms import BaseForm
 
 _GLOB_CHARS = frozenset("*?[")  # ]
-
-type ToolsetPydanticExport = list[ToolFuncPlain[...]]
-
-
-class BaseToolset(ABC):
-    """Toolset base class."""
-
-    @abstractmethod
-    def export_to_pydantic(self) -> ToolsetPydanticExport:
-        """Export toolset as a list of pydantic_ai tool functions."""
 
 
 class FileReadRequest(BaseForm):

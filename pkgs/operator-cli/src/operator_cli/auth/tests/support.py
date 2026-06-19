@@ -23,7 +23,7 @@ def make_jwt(payload: dict[str, object]) -> str:
 def make_token_response(*, account_id: str | None = EXPECTED_ACCOUNT_ID) -> OpenAITokenResponse:
     """Create a successful OAuth token response fixture."""
     id_token_payload: dict[str, object] = {"sub": "user_123"}
-    if account_id is not None:
+    if account_id  :
         id_token_payload["chatgpt_account_id"] = account_id
     return OpenAITokenResponse(
         access_token=ACCESS_TOKEN,

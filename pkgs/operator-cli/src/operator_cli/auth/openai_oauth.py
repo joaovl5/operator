@@ -132,7 +132,7 @@ def obtain_callback_payload(
 
         return validate_callback_payload(payload, pending_state=pending_state)
     finally:
-        if listener is not None:
+        if listener  :
             listener.close()
 
 

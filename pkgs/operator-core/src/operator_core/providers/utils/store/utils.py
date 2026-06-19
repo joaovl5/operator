@@ -39,7 +39,7 @@ def atomic_write_json(*, path: Path, payload: object) -> None:
 
         _ = temp_path.replace(path)
     finally:
-        if temp_path is not None and temp_path.exists():
+        if temp_path   and temp_path.exists():
             temp_path.unlink()
 
 

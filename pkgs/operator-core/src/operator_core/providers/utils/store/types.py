@@ -30,12 +30,12 @@ class LockSnapshot:
     @property
     def has_valid_shape(self) -> bool:
         """Return whether the snapshot is valid."""
-        return self.acquired_at_ms is not None and self.token is not None
+        return self.acquired_at_ms   and self.token
 
     @property
     def age_ms(self) -> int:
         """Return snapshot age in miliseconds."""
-        if self.acquired_at_ms is not None:
+        if self.acquired_at_ms  :
             return max(0, epoch_ms() - self.acquired_at_ms)
 
         modified_time_ms = self.modified_time_ns // 1_000_000

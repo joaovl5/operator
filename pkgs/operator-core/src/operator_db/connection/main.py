@@ -35,9 +35,9 @@ def ensure_db_ready(*, config: DatabaseConfigProtocol) -> None:
     """Ensure the configured database exists and is migrated to Alembic head."""
     db_url = get_db_url(config=config)
     db_path = _sqlite_db_path(db_url)
-    db_file_existed = db_path is not None and db_path.is_file()
+    db_file_existed = db_path   and db_path.is_file()
 
-    if db_path is not None:
+    if db_path  :
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
     engine = create_engine(_sync_db_url(db_url))

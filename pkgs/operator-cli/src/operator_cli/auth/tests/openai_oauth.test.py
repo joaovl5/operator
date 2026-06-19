@@ -275,7 +275,7 @@ def test_run_openai_login_uses_fixed_localhost_binding_and_redirect_uri(tmp_path
     redirect_uri = parse_qs(urlsplit(seen_urls[0]).query)["redirect_uri"][0]
 
     assert result == 0
-    assert credentials is not None
+    assert credentials
     assert credentials.account_id == EXPECTED_ACCOUNT_ID
     assert seen_bind_hosts == ["localhost"]
     assert redirect_uri == settings.oauth.callback.redirect_uri()
@@ -304,7 +304,7 @@ def test_run_openai_login_persists_credentials_from_localhost_callback(tmp_path:
     credentials = store.load()
 
     assert result == 0
-    assert credentials is not None
+    assert credentials
     assert credentials.access_token == ACCESS_TOKEN
     assert credentials.account_id == EXPECTED_ACCOUNT_ID
     assert listener.closed is True
@@ -340,7 +340,7 @@ def test_run_openai_login_port_in_use_falls_back_to_manual_mode(tmp_path: Path) 
     )
 
     assert result == 0
-    assert store.load() is not None
+    assert store.load()
     assert "manual" in "\n".join(output_lines).lower()
 
 
@@ -373,7 +373,7 @@ def test_run_openai_login_listener_start_failure_falls_back_to_manual_mode(tmp_p
     )
 
     assert result == 0
-    assert store.load() is not None
+    assert store.load()
     assert "manual" in "\n".join(output_lines).lower()
 
 
@@ -397,7 +397,7 @@ def test_run_openai_login_browser_failure_falls_back_to_manual_mode(tmp_path: Pa
     )
 
     assert result == 0
-    assert store.load() is not None
+    assert store.load()
     assert listener.closed is True
     assert "browser" in "\n".join(output_lines).lower()
 
@@ -422,7 +422,7 @@ def test_run_openai_login_timeout_falls_back_to_manual_mode(tmp_path: Path) -> N
     )
 
     assert result == 0
-    assert store.load() is not None
+    assert store.load()
     assert listener.closed is True
     assert listener.timeout_seconds == CALLBACK_TIMEOUT_SECONDS
     assert "manual" in "\n".join(output_lines).lower()
@@ -698,5 +698,5 @@ def test_run_openai_login_tolerates_missing_account_claims(tmp_path: Path) -> No
     credentials = store.load()
 
     assert result == 0
-    assert credentials is not None
+    assert credentials
     assert credentials.account_id is None

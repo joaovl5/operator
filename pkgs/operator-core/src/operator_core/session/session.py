@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from attrs import Factory, define
-from pydantic import DirectoryPath
 
 from operator_core.agent.main import OpAgent
 from operator_core.agent.streaming import (
@@ -32,7 +31,7 @@ from operator_core.session.errors import (
     SessionPersistenceUnavailableError,
 )
 from operator_core.session.events import AgentEventEmitter, SessionEventSink
-from operator_core.toolsets.main import FileToolset
+from operator_core.toolsets.files import FileToolset
 from operator_db.objects.agent import AgentRequestSchema, SessionAgentService
 from operator_db.objects.history import HistoryService
 from operator_db.objects.session import SessionRequestSchema, SessionService
@@ -45,7 +44,7 @@ from operator_shared.providers.transforms import (
 from operator_shared.time.utils import mk_time
 
 if TYPE_CHECKING:
-    from datetime import datetime
+    from pydantic import DirectoryPath
 
     from operator_db.objects.agent.schema import AgentResponseSchema
     from operator_db.objects.history.schema import (
@@ -106,8 +105,6 @@ class Session:
     event_sink: SessionEventSink | None = None
     working_directory: DirectoryPath = Factory(Path)
 
-    time_start: datetime = Factory(mk_time)
-
     def __attrs_post_init__(self) -> None:
         """Initialize agents, if necessary."""
         if ORCHESTRATOR_ID not in self.agents:
@@ -117,10 +114,14 @@ class Session:
             )
         self._register_tooling()
 
+    @property
+    def orchestrator(self) -> OpAgent:
+        """Main orchestrator agent."""
+        return self.agents[ORCHESTRATOR_ID]
+
     def _register_tooling(self) -> None:
         """Handle registering default tooling to agents."""
-        orch = self.agents[ORCHESTRATOR_ID]
-        orch.register_toolsets(
+        self.orchestrator.register_toolsets(
             FileToolset(
                 working_directory=self.working_directory,
             ).export_to_pydantic(),
@@ -138,7 +139,7 @@ class Session:
         """Create a persisted runtime session with its orchestrator agent."""
         session_service = SessionService()
         agent_service = SessionAgentService()
-        working_directory = working_directory or Path()
+        working_directory = working_directory or Path.cwd()
         session_response = await session_service.create_session(
             request=SessionRequestSchema(),
             db_session=db_session,
@@ -168,7 +169,7 @@ class Session:
 
     async def send_user_message(self, msg: UserMessage) -> list[HistoryMessageResponseSchema]:
         """Send an user-sourced message to an agent, prompting/queue-ing agent's turn."""
-        return await self._agent_loop(agent_id=msg.target_agent_id, user_message=msg)
+        return await self.agent_loop(agent_id=msg.target_agent_id, user_message=msg)
 
     async def _check_agent_may_run(self, _agent: OpAgent) -> None:
         """Verifies an agent can proceed to a turn. (Currently a stub).
@@ -182,7 +183,7 @@ class Session:
         - max turn count reached: raise a SessionTurnsExhausted signal
         """
 
-    async def _agent_loop(
+    async def agent_loop(
         self,
         *,
         agent_id: str,
@@ -219,6 +220,7 @@ class Session:
 
         # 1) If first turn, add sys. prompt
         if not messages:
+            # TODO: SHOULD BE IN OpAgent CODE NOT HERE FOR FUCKS SAKE
             system_message = await self._add_system_message(
                 agent=agent,
                 history_id=history_id,
@@ -228,7 +230,7 @@ class Session:
             await emit.system_prompt_seeded()
 
         # 2) Add the user message, if it exists
-        if user_message is not None:
+        if user_message  :
             user_response = await self._add_user_message(
                 agent=agent,
                 history_id=history_id,
@@ -294,7 +296,7 @@ class Session:
         return history_id, messages
 
     async def _get_agent_history_id(self, *, agent: OpAgent) -> str:
-        if agent.history_id is not None:
+        if agent.history_id  :
             return agent.history_id
         if self.session_id is None:
             message = "session_id is required for history lifecycle"

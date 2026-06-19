@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 config = context.config if hasattr(context, "config") else None
 
-if config is not None and config.config_file_name is not None:
+if config   and config.config_file_name  :
     fileConfig(config.config_file_name)
 
 target_metadata = operator_db.Base.metadata
@@ -67,13 +67,13 @@ def run_migrations_online() -> None:
     if config is None:
         return
     connection = config.attributes.get("connection")
-    if connection is not None:
+    if connection  :
         do_run_migrations(connection)
         return
     asyncio.run(run_async_migrations())
 
 
-if config is not None:
+if config  :
     if context.is_offline_mode():
         run_migrations_offline()
     else:

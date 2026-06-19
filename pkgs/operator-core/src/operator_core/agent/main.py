@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from operator_core.agent.streaming import AgentStreamSink
     from operator_core.permissions import PermissionGroup
-    from operator_core.toolsets.main import ToolsetPydanticExport
+    from operator_core.toolsets.base import ToolsetPydanticExport
     from operator_db.objects.history.schema import (
         HistoryMessageRequestSchema,
         HistoryMessageResponseSchema,

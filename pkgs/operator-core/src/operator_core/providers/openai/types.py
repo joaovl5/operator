@@ -21,11 +21,11 @@ class OpenAIModelSettings(ModelSettings):
         """Convert validated OpenAI settings into pydantic-ai settings."""
         model_settings = OpenAIResponsesModelSettings(temperature=temperature)
 
-        if self.openai_store is not None:
+        if self.openai_store  :
             model_settings["openai_store"] = self.openai_store
-        if self.openai_send_reasoning_ids is not None:
+        if self.openai_send_reasoning_ids  :
             model_settings["openai_send_reasoning_ids"] = self.openai_send_reasoning_ids
-        if self.openai_previous_response_id is not None:
+        if self.openai_previous_response_id  :
             model_settings["openai_previous_response_id"] = self.openai_previous_response_id
 
         return model_settings

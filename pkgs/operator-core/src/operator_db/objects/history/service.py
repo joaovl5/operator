@@ -9,14 +9,14 @@ from operator_db.objects.history.entity import (
     HistoryEnt,
     HistoryEpochEnt,
     HistoryEpochMessageEnt,
-    )
+)
 from operator_db.objects.history.schema import (
     HistoryEpochRequestSchema,
     HistoryEpochResponseSchema,
     HistoryMessageRequestSchema,
     HistoryMessageResponseSchema,
     HistoryResponseSchema,
-    )
+)
 from operator_db.utils.services import BaseService, DbSession
 
 if TYPE_CHECKING:
@@ -79,9 +79,9 @@ class HistoryService(BaseService):
             epoch_ent = HistoryEpochEnt(
                 history_id=history_id,
                 epoch_iteration=next_epoch_iteration,
-                title=request.title if request is not None else None,
-                description=request.description if request is not None else None,
-                extra_detail=request.extra_detail if request is not None else None,
+                title=request.title if request else None,
+                description=request.description if request else None,
+                extra_detail=request.extra_detail if request else None,
             )
             session.add(epoch_ent)
             await session.flush()
@@ -148,10 +148,7 @@ class HistoryService(BaseService):
                 missing_compaction_ids = requested_compaction_ids - found_compaction_ids
                 if missing_compaction_ids:
                     missing_ids = ", ".join(sorted(missing_compaction_ids))
-                    message = (
-                        "compacted message IDs not found in current history: "
-                        f"{missing_ids}"
-                    )
+                    message = f"compacted message IDs not found in current history: {missing_ids}"
                     raise LookupError(message)
                 for compacted_message in compacted_messages:
                     compacted_message.compacted_by_id = message_ent.id
@@ -177,16 +174,13 @@ class HistoryService(BaseService):
                     HistoryEpochMessageEnt.message_index,
                 )
             )
-            if epoch_iteration is not None:
+            if epoch_iteration  :
                 statement = statement.where(
                     HistoryEpochEnt.epoch_iteration == epoch_iteration,
                 )
 
             result = await session.execute(statement)
-            return [
-                self._message_response(message_ent)
-                for message_ent in result.scalars().all()
-            ]
+            return [self._message_response(message_ent) for message_ent in result.scalars().all()]
 
     @staticmethod
     def _history_response(history_ent: HistoryEnt) -> HistoryResponseSchema:

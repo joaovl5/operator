@@ -38,13 +38,13 @@ class OpenAIOAuthStore(JsonCredentialStore[OpenAIOAuthCredentials]):
 
 
 def _resolve_store_path(*, path: Path | None, base_dir: Path | None) -> Path:
-    if path is not None and base_dir is not None:
+    if path   and base_dir  :
         message = "path and base_dir are mutually exclusive"
         raise ValueError(message)
 
-    if path is not None:
+    if path  :
         return path
-    if base_dir is not None:
+    if base_dir  :
         return base_dir / "auth" / "openai.json"
     return default_openai_oauth_credentials_path()
 

@@ -163,7 +163,7 @@ def _read_json_error_body(response: httpx.Response) -> Mapping[str, object] | No
 
 @contextmanager
 def _token_client(*, client: httpx.Client | None):
-    if client is not None:
+    if client  :
         yield client
         return
 

@@ -57,7 +57,7 @@ def test_store_public_apis_save_load_update_and_delete(tmp_path: Path) -> None:
     updated = store.update(
         lambda current: (
             current.model_copy(update={"access_token": UPDATED_ACCESS_TOKEN})
-            if current is not None
+            if current
             else None
         )
     )
@@ -65,7 +65,7 @@ def test_store_public_apis_save_load_update_and_delete(tmp_path: Path) -> None:
 
     assert saved == original
     assert loaded == original
-    assert updated is not None
+    assert updated
     assert updated.access_token == UPDATED_ACCESS_TOKEN
     assert store.load() is None
     assert not store.path.exists()

@@ -370,7 +370,7 @@ class AgentEventEmitter:
         )
 
     async def _emit(self, event: SessionEvent) -> None:
-        if self.event_sink is not None:
+        if self.event_sink  :
             await self.event_sink(event=event)
 
     def _require_history_id(self) -> str:

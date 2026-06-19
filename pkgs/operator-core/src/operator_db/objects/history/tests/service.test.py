@@ -73,7 +73,7 @@ async def test_history_service_appends_ordered_messages_and_compaction_links() -
             db_session=db.sessionmaker,
         )
 
-        assert fetched_history is not None
+        assert fetched_history
         assert history_for_agent == fetched_history
         assert next_epoch.epoch_iteration == 1
         assert [message.message_index for message in messages] == [0, 1, 0]

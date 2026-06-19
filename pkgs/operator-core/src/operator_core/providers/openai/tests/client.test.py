@@ -67,7 +67,7 @@ def make_credentials(
 def make_store(tmp_path: Path, credentials: OpenAIOAuthCredentials | None) -> OpenAIOAuthStore:
     """Create a store optionally populated with credentials."""
     store = OpenAIOAuthStore(path=tmp_path / "openai.json")
-    if credentials is not None:
+    if credentials  :
         _ = store.save(credentials)
     return store
 
@@ -130,7 +130,7 @@ def test_oauth_manager_refreshes_expired_credentials_and_persists_them(
     persisted = store.load()
 
     assert token == REFRESHED_ACCESS_TOKEN
-    assert persisted is not None
+    assert persisted
     assert persisted.access_token == REFRESHED_ACCESS_TOKEN
     assert persisted.refresh_token == REFRESHED_REFRESH_TOKEN
     assert persisted.expires_at_ms == EXPECTED_EXPIRES_AT_MS
@@ -355,7 +355,7 @@ def test_newer_credentials_win_over_stale_refresh_results(
     _ = asyncio.run(run_test())
 
     persisted = store.load()
-    assert persisted is not None
+    assert persisted
     assert persisted.access_token == RELOGIN_ACCESS_TOKEN
     assert persisted.refresh_token == RELOGIN_REFRESH_TOKEN
 
@@ -404,7 +404,7 @@ def test_openai_oauth_model_config_and_provider_build_responses_models(
     model = provider.build_model(model_config=OpenAIOAuthModelConfig(name="gpt-5.3-codex"))
 
     assert isinstance(model, OpenAIResponsesModel)
-    assert model.settings is not None
+    assert model.settings
     assert dict(model.settings.items())["openai_store"] is False
 
 
@@ -424,7 +424,7 @@ def test_openai_and_oauth_providers_build_public_model_types(tmp_path: Path) -> 
     )
 
     assert isinstance(openai_model, OpenAIChatModel)
-    assert openai_model.settings is not None
+    assert openai_model.settings
     assert dict(openai_model.settings.items())["openai_store"] is True
     assert isinstance(oauth_model, OpenAIResponsesModel)
 
@@ -447,5 +447,5 @@ def test_public_openai_client_helpers_match_workspace_api_conventions() -> None:
         OpenAIOAuthModelProvider.build_provider,
         OpenAIOAuthModelProvider.build_model,
     ):
-        assert method.__doc__ is not None
+        assert method.__doc__
         assert method.__doc__.strip()
