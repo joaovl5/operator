@@ -66,7 +66,7 @@ class HistoryMessageTransform:
         """Convert one stable Operator message to a history append request."""
         return HistoryMessageRequestSchema(
             role=_role_from_operator_message(message),
-            author_id=author_id if author_id   else message.author_id,
+            author_id=author_id or message.author_id,
             text_contents=_text_contents_from_operator_message(message),
             binary_contents=_binary_contents_from_operator_message(message),
             json_contents=_operator_message_to_json_payload(message),

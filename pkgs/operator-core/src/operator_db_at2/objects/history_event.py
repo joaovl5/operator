@@ -33,11 +33,9 @@ class HistoryEvent:
             lazy="selectin",
         )
 
-        forks: Mapped[list[HistoryEvent.Type]] = relationship(
-            back_populates="forked_from_event",
-            lazy="raise",
-        )
-        """Forked events from different histories (branches), if any."""
+        if TYPE_CHECKING:
+            forks: Mapped[list[HistoryEvent.Event]]
+            """Forked events from different histories (branches), if any."""
 
         type: Mapped[TxtShort] = mapped_column(index=True)
 
@@ -75,11 +73,8 @@ class HistoryEvent:
             ForeignKey("history_epoch_events.id"),
             index=True,
         )
-        forked_from_event: Mapped[HistoryEvent.Type] = relationship(
-            uselist=False,
-            back_populates="forks",
-            lazy="selectin",
-        )
+        if TYPE_CHECKING:
+            forked_from_event: Mapped[HistoryEvent.Event]
 
     @final
     class Resuming(Event):
@@ -145,6 +140,20 @@ class HistoryEvent:
         | UseModel
         | UsePermissions
     ]
+
+
+HistoryEvent.Event.forks = relationship(
+    HistoryEvent.Forking,
+    back_populates="forked_from_event",
+    lazy="raise",
+)
+HistoryEvent.Forking.forked_from_event = relationship(
+    HistoryEvent.Event,
+    uselist=False,
+    back_populates="forks",
+    remote_side=lambda: HistoryEvent.Event.id,
+    lazy="selectin",
+)
 
 
 class HistoryEventRepo(Repo[HistoryEvent.Event]):

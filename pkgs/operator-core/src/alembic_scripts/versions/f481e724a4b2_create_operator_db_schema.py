@@ -13,7 +13,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 if TYPE_CHECKING:
-    from alembic_scripts.types import AlembicRev
+    from ..types import AlembicRev
 
 # revision identifiers, used by Alembic.
 revision: AlembicRev = "f481e724a4b2"

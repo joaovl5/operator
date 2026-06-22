@@ -5,10 +5,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, IDType, Repo
 from .constants import TxtShort  # noqa: TC001
+from .mail import MailMapping
 
 if TYPE_CHECKING:
     from .history import History
-    from .mail import MailMapping
     from .session import Session
 
 
@@ -42,10 +42,12 @@ class SessionAgent(Base):
 
     mail_sent: Mapped[list[MailMapping]] = relationship(
         back_populates="sender",
+        foreign_keys=lambda: [MailMapping.sender_id],
         lazy="raise",
     )
     mail_received: Mapped[list[MailMapping]] = relationship(
         back_populates="receiver",
+        foreign_keys=lambda: [MailMapping.receiver_id],
         lazy="raise",
     )
 

@@ -1,5 +1,6 @@
 """Database objects."""
 
+from .base import Base
 from .history import History
 from .history_epoch import HistoryEpoch
 from .history_event import HistoryEvent
@@ -8,6 +9,7 @@ from .session import Session
 from .session_agent import SessionAgent
 
 __all__ = [
+    "Base",
     "History",
     "HistoryEpoch",
     "HistoryEvent",

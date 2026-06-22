@@ -65,6 +65,7 @@ class MailMapping(Base):
     sender: Mapped[SessionAgent] = relationship(
         uselist=False,
         back_populates="mail_sent",
+        foreign_keys=lambda: [MailMapping.sender_id],
         lazy="selectin",
     )
 
@@ -75,6 +76,7 @@ class MailMapping(Base):
     receiver: Mapped[SessionAgent] = relationship(
         uselist=False,
         back_populates="mail_received",
+        foreign_keys=lambda: [MailMapping.receiver_id],
         lazy="selectin",
     )
 

@@ -17,3 +17,12 @@ format:
 alias a := alchemy
 alchemy *STUFF:
   uv run alchemy --config alchemy.config {{ STUFF }}
+
+mk-migrate msg:
+  @just alchemy make-migrations --autogenerate -m "{{ quote(msg) }}"
+
+db-up:
+  @just alchemy upgrade --no-prompt
+
+db-rm:
+  @just alchemy drop-all
