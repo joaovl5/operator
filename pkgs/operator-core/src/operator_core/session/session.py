@@ -16,7 +16,6 @@ from operator_core.agent.streaming import (
     StreamToolCallStarted,
 )
 from operator_core.agent.types import ORCHESTRATOR_ID, UserMessage
-from operator_core.config import DEFAULT_OPERATOR_SYSTEM_PROMPT, OperatorConfig
 from operator_core.permissions import (
     FilesystemScope,
     Permission,
@@ -24,7 +23,6 @@ from operator_core.permissions import (
     PermissionType,
     TemporalScope,
 )
-from operator_core.providers.factory import build_model_from_config
 from operator_core.session.errors import (
     SessionAgentUnavailableError,
     SessionMissingAgentError,
@@ -53,6 +51,7 @@ if TYPE_CHECKING:
     )
     from operator_db.objects.session.schema import SessionResponseSchema
     from operator_db.utils.services import DbSession
+    from operator_shared.settings import OperatorSettings
 
 
 def get_orchestrator_perms(cwd: Path) -> PermissionGroup:
@@ -77,13 +76,12 @@ def assemble_system_prompt(*, agent_system_prompt: str) -> str:
     return f"{DEFAULT_OPERATOR_SYSTEM_PROMPT}\n\n{agent_prompt}"
 
 
-def get_orchestrator_agent(
+def _get_orchestrator_agent(
     *,
-    config: OperatorConfig,
+    settings: OperatorSettings,
     history_id: str | None = None,
     cwd: Path,
 ) -> OpAgent:
-    """Create Orchestrator `OpAgent`."""
     return OpAgent(
         id=ORCHESTRATOR_ID,
         model=build_model_from_config(config=config.model),
@@ -95,7 +93,7 @@ def get_orchestrator_agent(
 
 @define(kw_only=True)
 class Session:
-    config: OperatorConfig
+    settings: OperatorSettings
     db_session: DbSession | None = None
     session_id: str | None = None
     agents: dict[str, OpAgent] = Factory(dict)  # pyright: ignore[reportUnknownVariableType]
@@ -108,8 +106,8 @@ class Session:
     def __attrs_post_init__(self) -> None:
         """Initialize agents, if necessary."""
         if ORCHESTRATOR_ID not in self.agents:
-            self.agents[ORCHESTRATOR_ID] = get_orchestrator_agent(
-                config=self.config,
+            self.agents[ORCHESTRATOR_ID] = _get_orchestrator_agent(
+                settings=self.settings,
                 cwd=self.working_directory,
             )
         self._register_tooling()
@@ -131,7 +129,7 @@ class Session:
     async def create(
         cls,
         *,
-        config: OperatorConfig,
+        settings: OperatorSettings,
         db_session: DbSession,
         event_sink: SessionEventSink | None = None,
         working_directory: DirectoryPath | None = None,
@@ -144,20 +142,20 @@ class Session:
             request=SessionRequestSchema(),
             db_session=db_session,
         )
-        agent = get_orchestrator_agent(
-            config=config,
+        agent = _get_orchestrator_agent(
+            settings=settings,
             cwd=working_directory,
         )
         agent_response = await _create_persisted_agent(
             agent=agent,
-            config=config,
+            settings=settings,
             session_response=session_response,
             agent_service=agent_service,
             db_session=db_session,
         )
         agent.history_id = agent_response.history_id
         return cls(
-            config=config,
+            settings=settings,
             db_session=db_session,
             session_id=session_response.id,
             agents={agent.id: agent},
@@ -230,7 +228,7 @@ class Session:
             await emit.system_prompt_seeded()
 
         # 2) Add the user message, if it exists
-        if user_message  :
+        if user_message:
             user_response = await self._add_user_message(
                 agent=agent,
                 history_id=history_id,
@@ -296,7 +294,7 @@ class Session:
         return history_id, messages
 
     async def _get_agent_history_id(self, *, agent: OpAgent) -> str:
-        if agent.history_id  :
+        if agent.history_id:
             return agent.history_id
         if self.session_id is None:
             message = "session_id is required for history lifecycle"
@@ -311,7 +309,7 @@ class Session:
         if persisted_agent is None:
             persisted_agent = await _create_persisted_agent(
                 agent=agent,
-                config=self.config,
+                settings=self.settings,
                 session_response=_SessionIdResponse(id=self.session_id),
                 agent_service=self.agent_service,
                 db_session=db_session,
@@ -427,7 +425,7 @@ class _SessionIdResponse:
 async def _create_persisted_agent(
     *,
     agent: OpAgent,
-    config: OperatorConfig,
+    settings: OperatorSettings,
     session_response: SessionResponseSchema | _SessionIdResponse,
     agent_service: SessionAgentService,
     db_session: DbSession,
@@ -436,8 +434,8 @@ async def _create_persisted_agent(
         request=AgentRequestSchema(
             session_id=session_response.id,
             local_id=agent.id,
-            model=config.model.name,
-            system_prompt=config.agent.system_prompt,
+            model=settings.model.name,
+            system_prompt=settings.agent.system_prompt,
             serialized_permissions=None,
         ),
         db_session=db_session,

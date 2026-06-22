@@ -137,3 +137,11 @@ complete.**
 - Prefer staged, verification-first refactors over broad rewrites.
 - Keep changes simple, with clear module boundaries and minimal surface area.
 - Preserve established ownership and behavior in touched areas unless the user explicitly asks for a change.
+
+## Don't be verbose for no reason
+
+- Don't do `is not None` - its the same thing as doing nothing
+  - you can say `if x is not None` or just `if x` - its _much_ cleaner
+    to use the shorter version
+- Don't add `__all__` to the bottom of modules that are not
+  `__init__.py` - they are NOT useful

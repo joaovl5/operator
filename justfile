@@ -13,3 +13,7 @@ alias f := format
 format:
   nix fmt --quiet --log-format raw
   uv run ruff format --quiet
+
+alias a := alchemy
+alchemy *STUFF:
+  uv run alchemy --config alchemy.config {{ STUFF }}

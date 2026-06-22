@@ -48,6 +48,7 @@ class SessionAgentEnt(MetadataMixin, Entity):
     This ID is unique through the session only.
     """
 
+    # FIXME: Shouldn't even be here!
     model: Mapped[OptStr]
     system_prompt: Mapped[OptStrLong]
     serialized_permissions: Mapped[OptJson]
