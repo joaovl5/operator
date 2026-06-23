@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from alembic import context
 from alembic.autogenerate import rewriter
-from alembic.autogenerate.api import AutogenContext
 
 from operator_db_at2.connection.main import get_async_engine
 from operator_db_at2.objects import Base
