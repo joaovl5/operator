@@ -26,16 +26,15 @@ def _render_item(
     *_args: Any,
     **_kwargs: Any,
 ) -> str | Literal[False]:
-    if type_ == "type":
-        match obj:
-            case PydanticJSON():
-                # we need this to avoid having to detect internal model_type, which is
-                # useless for alembic - so we just use the internal type of JsonB
-                return "sa.JsonB"
-            case _:
-                pass
-
-    return False
+    if type_ != "type":
+        return False
+    match obj:
+        case PydanticJSON():
+            # we need this to avoid having to detect internal model_type, which is
+            # useless for alembic - so we just use the internal type of JsonB
+            return "sa.JsonB"
+        case _:
+            return False
 
 
 @cache
