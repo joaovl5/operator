@@ -7,8 +7,6 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
-    Field,
-    FilePath,
     GetCoreSchemaHandler,
     GetPydanticSchema,
     StringConstraints,
@@ -61,7 +59,7 @@ def _entry_val(x: object) -> object:
         if not isinstance(v, Mapping):
             entries[k] = v
             continue
-        entry_data = dict(v)  # pyright: ignore[reportUnknownArgumentType, reportUnknownVariableType]
+        entry_data = dict(v)  # pyright: ignore[reportUnknownVariableType]
         entry_data["key"] = k
         entries[k] = entry_data
     return entries
@@ -79,22 +77,3 @@ Entries = Annotated[
 ]
 """Makes a key-value dict where its values will have their `key` field set to the
 dictionary key for convenience."""
-
-
-class _Path(BaseModel):
-    path: FilePath
-
-
-type PathOrContents = Annotated[
-    str | _Path,
-    Field(
-        description="Either a string or a path to a file which contents will be used.",
-    ),
-]
-
-
-def read_if_path(x: PathOrContents) -> str:
-    """Read from a path if `x` is path."""
-    if isinstance(x, str):
-        return x
-    return x.path.read_text()

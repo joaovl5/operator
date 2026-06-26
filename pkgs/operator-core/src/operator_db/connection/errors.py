@@ -7,6 +7,3 @@ class OperatorDbConnectionError(RuntimeError):
 
 class OperatorDbMigrationError(OperatorDbConnectionError):
     """Raised when database migration readiness cannot be established."""
-
-
-__all__ = ["OperatorDbConnectionError", "OperatorDbMigrationError"]

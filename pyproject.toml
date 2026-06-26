@@ -182,7 +182,7 @@
 
 
 [tool.alembic]
-  script_location        = "%(here)s/pkgs/operator-core/src/operator_db_at2/alembic"
+  script_location        = "%(here)s/pkgs/operator-core/src/operator_db/alembic"
   prepend_sys_path       = ["."]
   file_template          = "%%(year).2d%%(month).2d%%(day).2d_%%(rev)s_%%(slug)s"
   truncate_slug_length   = 40

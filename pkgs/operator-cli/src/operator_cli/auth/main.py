@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from operator_core.providers.openai import (
+from operator_core_olden.providers.openai import (
     OpenAIOAuthProtocolError,
     OpenAIOAuthReauthRequiredError,
     OpenAIOAuthStore,
@@ -11,7 +11,7 @@ from operator_core.providers.openai import (
     build_authorize_url,
     build_pkce_verifier_and_challenge,
 )
-from operator_core.providers.utils.store.errors import JsonCredentialStoreTransactionError
+from operator_core_olden.providers.utils.store.errors import JsonCredentialStoreTransactionError
 from operator_shared.settings import OperatorSettings, load_operator_settings
 
 from .errors import CallbackParseError, CallbackStateMismatchError

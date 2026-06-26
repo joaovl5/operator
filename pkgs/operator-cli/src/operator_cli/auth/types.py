@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Protocol
 from attrs import define
 
 if TYPE_CHECKING:
-    from operator_core.providers.openai import OpenAITokenResponse
+    from operator_core_olden.providers.openai import OpenAITokenResponse
 
 
 @define(frozen=True, kw_only=True)

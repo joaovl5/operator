@@ -16,7 +16,9 @@ class BaseService:
     ) -> AsyncIterator[AsyncSession]:
         """Yield a bound async session from a session or sessionmaker."""
         if db_session is None:
-            message = "db_session is required; pass an AsyncSession or async_sessionmaker[AsyncSession]"
+            message = (
+                "db_session is required; pass an AsyncSession or async_sessionmaker[AsyncSession]"
+            )
             raise RuntimeError(message)
 
         if isinstance(db_session, AsyncSession):

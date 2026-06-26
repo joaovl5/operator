@@ -3,7 +3,7 @@
 import base64
 import json
 
-from operator_core.providers.openai import OpenAITokenResponse
+from operator_core_olden.providers.openai import OpenAITokenResponse
 
 EXPECTED_ACCOUNT_ID = "acct_123"
 ACCESS_TOKEN = "oauth-access-token"  # noqa: S105
@@ -23,7 +23,7 @@ def make_jwt(payload: dict[str, object]) -> str:
 def make_token_response(*, account_id: str | None = EXPECTED_ACCOUNT_ID) -> OpenAITokenResponse:
     """Create a successful OAuth token response fixture."""
     id_token_payload: dict[str, object] = {"sub": "user_123"}
-    if account_id  :
+    if account_id:
         id_token_payload["chatgpt_account_id"] = account_id
     return OpenAITokenResponse(
         access_token=ACCESS_TOKEN,

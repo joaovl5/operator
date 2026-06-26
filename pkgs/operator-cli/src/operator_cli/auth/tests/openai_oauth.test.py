@@ -32,7 +32,7 @@ from operator_cli.auth.types import (
     LoginFlowDependencies,
     Output,
 )
-from operator_core.providers.openai import (
+from operator_core_olden.providers.openai import (
     OpenAIOAuthReauthRequiredError,
     OpenAIOAuthStore,
     OpenAITokenResponse,

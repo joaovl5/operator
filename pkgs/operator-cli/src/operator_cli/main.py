@@ -44,7 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Parse CLI arguments and dispatch to the selected command handler."""
     parser = build_parser()
-    args = parser.parse_args(list(argv) if argv   else None)
+    args = parser.parse_args(list(argv) if argv else None)
     command_id = getattr(args, "command_id", None)
     match command_id:
         case "auth.openai.login":

@@ -26,7 +26,6 @@ class _SqliteConnection(Protocol):
     def cursor(self) -> _SqliteCursor: ...
 
 
-
 @define(frozen=True, kw_only=True)
 class TmpSqliteDb:
     """Temporary async SQLite DB handles."""

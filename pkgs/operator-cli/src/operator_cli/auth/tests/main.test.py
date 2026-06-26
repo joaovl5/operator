@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from operator_cli.auth.main import run_openai_logout, run_openai_status
-from operator_core.providers.openai import OpenAIOAuthCredentials, OpenAIOAuthStore
+from operator_core_olden.providers.openai import OpenAIOAuthCredentials, OpenAIOAuthStore
 
 from .support import ACCESS_TOKEN, EXPECTED_ACCOUNT_ID, REFRESH_TOKEN, make_jwt
 

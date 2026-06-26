@@ -5,7 +5,7 @@ import webbrowser
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
-from operator_core.providers.openai import (
+from operator_core_olden.providers.openai import (
     OpenAIOAuthStateMismatchError,
     exchange_authorization_code,
     generate_oauth_state,
@@ -42,7 +42,11 @@ def parse_callback_url(callback_url: str, *, callback: CallbackSettings) -> Call
         port = parts.port
     except ValueError as error:
         raise CallbackParseError(INVALID_CALLBACK_URL_MESSAGE) from error
-    if parts.scheme != "http" or parts.hostname != DEFAULT_CALLBACK_BIND_HOST or port != callback.port:
+    if (
+        parts.scheme != "http"
+        or parts.hostname != DEFAULT_CALLBACK_BIND_HOST
+        or port != callback.port
+    ):
         message = f"callback URL must use {callback.redirect_uri()}"
         raise CallbackParseError(message)
     if parts.path != callback.path:
@@ -132,7 +136,7 @@ def obtain_callback_payload(
 
         return validate_callback_payload(payload, pending_state=pending_state)
     finally:
-        if listener  :
+        if listener:
             listener.close()
 
 

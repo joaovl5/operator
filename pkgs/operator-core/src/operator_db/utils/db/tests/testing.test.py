@@ -32,7 +32,6 @@ async def test_tmp_sqlite_db_creates_operator_tables_and_sessions() -> None:
         assert set(Base.metadata.tables) <= table_names
 
 
-
 async def test_tmp_sqlite_db_enforces_foreign_keys() -> None:
     """Temporary SQLite helper enforces foreign keys on committed rows."""
     async with tmp_sqlite_db() as db, db.sessionmaker() as session:
