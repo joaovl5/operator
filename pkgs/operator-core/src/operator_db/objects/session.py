@@ -60,7 +60,7 @@ class Session(Base):
 
     async def as_dict(self) -> dict[str, Any]:
         """Convert object to dictionary."""
-        agents: list[SessionAgent] = await self._at.session_agents
+        agents: list[SessionAgent] = await self.aw.session_agents
         return {
             "session_title": self.session_title,
             "session_agents": [await x.as_dict() for x in agents],

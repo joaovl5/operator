@@ -1,9 +1,9 @@
-from asyncio import Event, Lock, Task, create_task, gather
+from asyncio import Event, Lock, Task, create_task
 from typing import TYPE_CHECKING
 
 from attrs import Factory, define, field
 
-from operator_core.session.types import IncomingMessage, StopAgentMethod
+from operator_core.session.types import EventPointer, IncomingMessage, StopAgentMethod
 from operator_db.objects import Session, SessionAgent, SessionAgentSvc, SessionSvc
 
 if TYPE_CHECKING:
@@ -64,6 +64,21 @@ class SessionAgentManager:
             pass
         self.turn_end_ev.set()
 
+    async def add_user_message(
+        self,
+        *,
+        parent_pointer: EventPointer,
+        message: IncomingMessage,
+    ) -> None:
+        """Adds user message to context."""
+        await self.service.add_message(
+            parent_id=parent_pointer.event_id,
+            context_id=parent_pointer.context_id,
+            text_data=message.text_data,
+            json_data=message.json_data,
+            bytes_data=message.bytes_data,
+        )
+
 
 @define(kw_only=True)
 class SessionManager:
@@ -81,15 +96,9 @@ class SessionManager:
     )
     _obj: Session = field(init=False)
     _ready: bool = field(init=False, default=False)
-    _agents: _AgentMap = field(init=False)
-    _agent_mgrs: _AgentManagerMap = field(init=False)
-    _agent_loop_tasks: _AgentLoopTaskMap = field(init=False)
-
-    def __attrs_post_init__(self) -> None:
-        """Handle post-init tasks."""
-        self._agents = {}
-        self._agent_mgrs = {}
-        self._agent_loop_tasks = {}
+    _agents: _AgentMap = field(init=False, factory=dict)
+    _agent_mgrs: _AgentManagerMap = field(init=False, factory=dict)
+    _agent_loop_tasks: _AgentLoopTaskMap = field(init=False, factory=dict)
 
     async def _ensure_ok(self) -> None:
         """Ensure async-part of initialization is done."""
@@ -151,13 +160,19 @@ class SessionManager:
     async def add_user_message(
         self,
         agent_id: str,
+        parent_pointer: EventPointer,
         message: IncomingMessage,
         stop_method: StopAgentMethod = StopAgentMethod.WAIT_LOOP,
     ) -> None:
-        """Adds a user message to an agent's history."""
+        """Adds a user message to an agent's context.
+
+        This does not make the loop start/restart afterwards.
+        """
         await self.trigger_stop(
             agent_id=agent_id,
             stop_method=stop_method,
         )
-        mgr = self._agent_mgrs[agent_id]
-        mgr.service
+        await self._agent_mgrs[agent_id].add_user_message(
+            message=message,
+            parent_pointer=parent_pointer,
+        )

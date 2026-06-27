@@ -1,7 +1,5 @@
-"""History message role constants."""
-
 from enum import StrEnum
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, Literal
 
 from advanced_alchemy.types import JsonB
 from pydantic import BaseModel, Discriminator, JsonValue
@@ -36,7 +34,7 @@ type OptJson = Annotated[
 
 
 class MsgRole(StrEnum):
-    """Role of author in a history message."""
+    """Role of author in a message."""
 
     SYSTEM = "system"
     """System-related message, directly by harness.

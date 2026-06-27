@@ -27,12 +27,19 @@ async def _main() -> None:
             with_orchestrator=True,
         )
         orch_ag = await session_obj.get_orchestrator(s)
+        last_ev = await ag_svc.get_last_event(agent=orch_ag)
+        if not last_ev:
+            msg = "Session somehow has no events!"
+            raise ValueError(msg)
 
-        num_msg = 5000
+        ctx_id = last_ev.context_id
+
+        num_msg = 50
         t_0 = time()
         for i in range(num_msg):
-            await ag_svc.add_message(
-                history=await orch_ag._at.history,
+            last_ev = await ag_svc.add_message(
+                parent_id=last_ev.id,
+                context_id=ctx_id,
                 text_data=f"Salve {i}",
             )
         t_f = time()

@@ -1,1 +1,1 @@
-"""Abstracts DB-related stuff from rest of core logic."""
+"""DB-related logic."""

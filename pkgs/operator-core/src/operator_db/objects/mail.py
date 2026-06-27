@@ -90,8 +90,8 @@ class MailMapping(Base):
         return {
             "title": self.message.title,
             "body": self.message.body,
-            "sender_agent_id": (await self._at.sender).agent_id,
-            "receiver_agent_id": (await self._at.receiver).agent_id,
+            "sender_agent_id": (await self.aw.sender).agent_id,
+            "receiver_agent_id": (await self.aw.receiver).agent_id,
             "state": self.state.value,
         }
 

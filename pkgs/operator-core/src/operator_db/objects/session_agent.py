@@ -1,21 +1,21 @@
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from operator_db.objects import HistoryEvent
-from operator_db.objects.history_epoch import HistoryEpochSvc
+from operator_db.objects import ContextEvent
 from operator_shared.constants import ORCHESTRATOR_AGENT_ID
 
 from .base import Base, IDType, Repo, Svc
 from .constants import TxtShort  # noqa: TC001
+from .context import AgentContext  # noqa: TC001
+from .context_event import ContextEventSvc, CtxEvent, get_poly_id
 from .mail import MailMapping
 from .types import MsgRole
 
 if TYPE_CHECKING:
     from pydantic import JsonValue
 
-    from .history import History
     from .session import Session
 
 
@@ -24,16 +24,13 @@ class SessionAgent(Base):
 
     agent_id: Mapped[TxtShort] = mapped_column(index=True)
 
-    # IMPORTANT:
-    # We only set `history_id` for the *main* or initial branch.
-    # Any forks and their relations go into History.forked_from_id
-    history_id: Mapped[IDType] = mapped_column(
-        ForeignKey("histories.id"),
+    context_id: Mapped[IDType] = mapped_column(
+        ForeignKey("contexts.id"),
         index=True,
     )
-    history: Mapped[History] = relationship(
+    context: Mapped[AgentContext] = relationship(
         uselist=False,
-        back_populates="session_agent",
+        back_populates="agent",
         lazy="immediate",
     )
 
@@ -58,11 +55,11 @@ class SessionAgent(Base):
 
     async def as_dict(self) -> dict[str, Any]:
         """Convert object to dictionary."""
-        mail_sent: list[MailMapping] = await self._at.mail_sent
-        mail_received: list[MailMapping] = await self._at.mail_received
+        mail_sent: list[MailMapping] = await self.aw.mail_sent
+        mail_received: list[MailMapping] = await self.aw.mail_received
         return {
-            "agent_id": await self._at.agent_id,
-            "history": await (await self._at.history).as_dict(),
+            "agent_id": await self.aw.agent_id,
+            "context": await (await self.aw.context).as_dict(),
             "mail_sent": [await x.as_dict() for x in mail_sent],
             "mail_received": [await x.as_dict() for x in mail_received],
         }
@@ -76,8 +73,8 @@ class SessionAgentSvc(Svc[SessionAgent]):
     repository_type = SessionAgentRepo
 
     @property
-    def _epoch_svc(self) -> HistoryEpochSvc:
-        return self._get_svc(HistoryEpochSvc)
+    def _event_svc(self) -> ContextEventSvc:
+        return self._get_svc(ContextEventSvc)
 
     def _bake_initial_events(
         self,
@@ -86,14 +83,19 @@ class SessionAgentSvc(Svc[SessionAgent]):
         model_name: str,
         model_provider: str,
         permissions: dict[str, Any],
-    ) -> list[HistoryEvent.Type]:
-        """Make initial set of events for the first epoch of a history."""
-        return [
-            HistoryEvent.ChatStart(),
-            HistoryEvent.Message(role=MsgRole.SYSTEM, text=system_prompt),
-            HistoryEvent.UsePermissions(data=permissions),
-            HistoryEvent.UseModel(model_name=model_name, model_provider=model_provider),
+    ) -> list[ContextEvent.Type]:
+        """Make initial set of events for the first epoch."""
+        _base: list[ContextEvent.Type] = [
+            ContextEvent.ChatStart(),
+            ContextEvent.EpochStart(),
+            ContextEvent.Message(role=MsgRole.SYSTEM, text=system_prompt),
+            ContextEvent.UsePermissions(data=permissions),
+            ContextEvent.UseModel(model_name=model_name, model_provider=model_provider),
         ]
+
+        self._event_svc.bake_into_tree(_base)
+
+        return _base
 
     def bake_orchestrator_agent(
         self,
@@ -107,45 +109,55 @@ class SessionAgentSvc(Svc[SessionAgent]):
         """Bake data for making an orchestrator agent as part of a larger query."""
         return {
             "agent_id": agent_id,
-            "history": {
-                "epochs": [
-                    {
-                        "events": self._bake_initial_events(
-                            system_prompt=system_prompt,
-                            model_name=model_name,
-                            model_provider=model_provider,
-                            permissions=permissions,
-                        ),
-                    }
-                ]
+            "context": {
+                "events": self._bake_initial_events(
+                    system_prompt=system_prompt,
+                    model_name=model_name,
+                    model_provider=model_provider,
+                    permissions=permissions,
+                ),
             },
         }
 
-    async def add_message(
+    async def add_message(  # noqa: PLR0913
         self,
         *,
-        history: History,
+        parent_id: IDType,
+        context_id: IDType,
         text_data: str | None = None,
         json_data: JsonValue | None = None,
         bytes_data: bytes | None = None,
         role: MsgRole = MsgRole.USER,
-    ) -> None:
+    ) -> ContextEvent.Message:
         """Add a message."""
-        epoch = await history.get_current_epoch(self._session)
-        msg_ev = HistoryEvent.Message(
+        msg_ev = ContextEvent.Message(
             role=role,
             text=text_data,
             json=json_data,
             binary_contents=bytes_data,
-            epoch_id=epoch.id,
+            parent_id=parent_id,
+            context_id=context_id,
         )
         self._session.add(msg_ev)
         await self._session.commit()
+        await self._session.refresh(msg_ev, attribute_names=("id",))
+        return msg_ev
 
-    async def make_agent(
-        self,
-        *,
-        session_id: IDType,
-        agent_id: str,
-        initial_prompt: str | None = None,
-    ) -> SessionAgent: ...
+    async def get_last_event(self, *, agent: SessionAgent) -> CtxEvent | None:
+        """Return last event or `None` if forks are found along the way."""
+        query = (
+            select(CtxEvent)
+            .where(
+                CtxEvent.context_id == agent.context_id,
+                CtxEvent.type == get_poly_id(ContextEvent.ChatStart),
+            )
+            .limit(1)
+        )
+
+        res = await self._session.scalar(query)
+
+        if not res:
+            msg = "Session doesn't have a `ChatStart` event!"
+            raise ValueError(msg)
+
+        return await self._event_svc.walk_down_unforked(ev=res)

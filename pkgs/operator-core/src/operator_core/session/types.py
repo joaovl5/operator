@@ -1,6 +1,14 @@
 from enum import StrEnum
+from typing import TYPE_CHECKING, Self
 
 from pydantic import BaseModel, JsonValue
+
+from operator_db.objects.base import IDType
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from operator_db.objects.context_event import CtxEvent
 
 
 class StopAgentMethod(StrEnum):
@@ -20,3 +28,19 @@ class IncomingMessage(BaseModel):
     text_data: str | None = None
     json_data: JsonValue | None = None
     bytes_data: bytes | None = None
+
+
+class EventPointer(BaseModel):
+    """Stores position on the context tree."""
+
+    event_id: IDType
+    context_id: IDType
+
+    @classmethod
+    async def from_event(cls, *, event: CtxEvent, session: AsyncSession) -> Self:
+        """Returns a pointer to `event`."""
+        await session.refresh(event, attribute_names=("id", "context_id"))
+        return cls(
+            event_id=event.id,
+            context_id=event.context_id,
+        )

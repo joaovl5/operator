@@ -22,7 +22,7 @@ def walk_dicts(x: _Dict, predicate: Callable[[_Dict], _Dict]) -> _Dict:
                 )
                 if isinstance(z, Mapping)
                 else z
-                for z in v  # pyright: ignore[reportUnknownVariableType]
+                for z in v
             ]
         else:
             out[k] = v
