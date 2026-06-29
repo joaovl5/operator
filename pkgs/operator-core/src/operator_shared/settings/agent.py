@@ -1,6 +1,6 @@
 from enum import StrEnum
 from functools import cached_property
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import Field, FilePath, PositiveInt
 
@@ -75,15 +75,15 @@ class _AgentSettingsBase(SettingsBase):
     permissions: Fac[dict[str, object]]
     """Placeholder value for when permissions are implemented."""
 
+    use_preset_model: str | None = None
+    """If set, will use that specific model preset key from `models.entries`."""
+
 
 class _AgentSettingsCommon(_AgentSettingsBase): ...
 
 
 class _AgentSettingsArchetype(_AgentSettingsBase):
     key: str
-
-    use_preset_model: str | None = None
-    """If set, will use that specific model preset key from `models.entries`."""
 
 
 def _bake_default_common() -> _AgentSettingsCommon:
@@ -231,3 +231,27 @@ class AgentsSettings(SettingsBase):
             out.append(content)
 
         return "\n\n".join(out)
+
+    def compute_effective_settings(
+        self,
+        archetype: str | None = None,
+        extra_cfg: _AgentSettingsCommon | None = None,
+    ) -> _AgentSettingsBase:
+        """Computes settings for agent.
+
+        Don't use this for computing prompts - instead use the dedicated function for
+        that: `compute_effective_prompt`.
+
+        """
+        out: dict[str, Any] = self.common.model_dump()
+
+        arch = self.archetypes.get(archetype) if archetype else None
+        if not arch and archetype:
+            msg = f"Couldn't find config for archetype {archetype}"
+            raise ValueError(msg)
+        if arch:
+            out.update(arch.model_dump())
+        if extra_cfg:
+            out.update(extra_cfg.model_dump())
+
+        return _AgentSettingsBase.model_validate(out)

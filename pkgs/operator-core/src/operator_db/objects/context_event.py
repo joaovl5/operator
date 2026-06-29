@@ -19,6 +19,10 @@ def get_poly_id(t: type[ContextEvent.Event]) -> str:
     return t.__mapper_args__["polymorphic_identity"]
 
 
+if not True and False:
+    pass
+
+
 class ContextEvent:
     # IMPORTANT!
     # For the polymorphism to work, we set `nullable` on all subclass fields.
@@ -221,8 +225,8 @@ class ContextEventSvc(Svc[CtxEvent]):
             child.parent = parent
             child = parent
 
-    async def walk_down_unforked(self, ev: CtxEvent) -> CtxEvent | None:
-        """Walk down descendants of `ev` until the last one is found and returned.
+    async def walk_down_unforked(self, anchor_event_id: IDType) -> CtxEvent | None:
+        """Walk down, from anchor event, until the last event is found and returned.
 
         If forks are found while walking down, returns `None`.
         """
@@ -242,7 +246,7 @@ class ContextEventSvc(Svc[CtxEvent]):
                     .scalar_subquery()
                 ).label("child_count"),
             )
-            .where(CtxEvent.id == ev.id)
+            .where(CtxEvent.id == anchor_event_id)
             .cte("ctx_event_down_chain")
         )
 
@@ -285,7 +289,7 @@ class ContextEventSvc(Svc[CtxEvent]):
 
     async def walk_up_epoch(
         self,
-        ev: CtxEvent,
+        event_id: IDType,
     ) -> list[CtxEvent]:
         """Walks up ancestry of event until reaching the beginning of epoch."""
         chain = (
@@ -296,7 +300,7 @@ class ContextEventSvc(Svc[CtxEvent]):
                 CtxEvent.type.label("type"),
                 literal(0).label("depth"),
             )
-            .where(CtxEvent.id == ev.id)
+            .where(CtxEvent.id == event_id)
             .cte("ctx_event_epoch_chain", recursive=True)
         )
         parent = aliased(CtxEvent)

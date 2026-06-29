@@ -108,3 +108,12 @@ class ForkReconcile(BaseModel):
     """Methods of reconciling a forked branch."""
 
     value: ForkReconcileValue.Type
+
+
+class SettingsPayload(BaseModel):
+    """Payload for settings event."""
+
+    model_name: str
+    model_provider: str
+
+    permissions: JsonValue

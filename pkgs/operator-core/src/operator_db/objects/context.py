@@ -1,8 +1,9 @@
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy import ForeignKey, select, update
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
+from .base import Base, IDType, Repo, Svc
 from .context_event import CtxEvent  # noqa: TC001
 
 if TYPE_CHECKING:
@@ -39,9 +40,22 @@ class AgentContext(Base):
         - For creation of a new epoch, the new epoch event must be created, and any
           events like compression must be appended as nodes there-in.
 
+    For keeping track of where we are at the context tree, we use *pointers*, which are
+    basically a "last event" tracking measure for gathering epoch events upwards, and it
+    must be kept updated as new events arise.
+
     """
 
     __tablename__ = "contexts"
+
+    pointer_event_id: Mapped[IDType | None] = mapped_column(
+        ForeignKey("context_events.id"),
+        index=True,
+        nullable=True,
+    )
+    pointer_event: Mapped[CtxEvent | None] = relationship(
+        uselist=False,
+    )
 
     agent: Mapped[SessionAgent] = relationship(
         uselist=False,
@@ -61,3 +75,34 @@ class AgentContext(Base):
             if (len_events := len(events)) > cap
             else [await x.as_dict() for x in events],
         }
+
+
+class AgentContextSvc(Svc[AgentContext]):
+    class _Repo(Repo[AgentContext]):
+        model_type = AgentContext
+
+    repository_type = _Repo
+
+    async def get_pointer_id(self, context_id: IDType) -> IDType | None:
+        """Get value for that context's `pointer_event_id`."""
+        pointer_event_query = (
+            select(
+                AgentContext.pointer_event_id,
+            )
+            .where(AgentContext.id == context_id)
+            .limit(1)
+        )
+        return await self._session.scalar(pointer_event_query)
+
+    async def set_pointer_id(self, context_id: IDType, event_id: IDType) -> None:
+        """Move the pointer of context."""
+        pointer_set_query = (
+            update(AgentContext)
+            .where(
+                AgentContext.id == context_id,
+            )
+            .values(pointer_event_id=event_id)
+        )
+
+        await self._session.execute(pointer_set_query)
+        await self._session.commit()

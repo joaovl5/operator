@@ -49,6 +49,24 @@ class OperatorSettings(SettingsBase):
                 )
                 raise ValueError(msg)
 
+    def get_model(
+        self,
+        key: str,
+        *,
+        raise_on_none: bool = False,
+    ) -> _ModelSettings:
+        """Return model based on key, or default one.
+
+        If `raise_on_none` is set, will not return the default model and instead will
+        raise an error if the key was not found.
+        """
+        if x := self.models.entries.get(key):
+            return x
+        if raise_on_none:
+            msg = f"Model preset `{key}` was not found."
+            raise ValueError(msg)
+        return self.models.default_entry_force
+
     def get_archetype_model(self, archetype_key: str) -> _ModelSettings:
         """Return effective model preset for the archetype.
 
@@ -61,5 +79,5 @@ class OperatorSettings(SettingsBase):
             raise ValueError(msg)
         if x := archetype.use_preset_model:
             # this should never fail, due to `_validate_archetypes`
-            return self.models.entries[x]
+            return self.get_model(x, raise_on_none=True)
         return self.models.default_entry_force

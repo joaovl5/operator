@@ -8,7 +8,7 @@ from operator_shared.constants import ORCHESTRATOR_AGENT_ID
 
 from .base import Base, IDType, Repo, Svc
 from .constants import TxtShort  # noqa: TC001
-from .context import AgentContext  # noqa: TC001
+from .context import AgentContext, AgentContextSvc
 from .context_event import ContextEventSvc, CtxEvent, get_poly_id
 from .mail import MailMapping
 from .types import MsgRole
@@ -73,8 +73,14 @@ class SessionAgentSvc(Svc[SessionAgent]):
     repository_type = SessionAgentRepo
 
     @property
-    def _event_svc(self) -> ContextEventSvc:
+    def event_svc(self) -> ContextEventSvc:
+        """Event service instance."""
         return self._get_svc(ContextEventSvc)
+
+    @property
+    def ctx_svc(self) -> AgentContextSvc:
+        """Context service instance."""
+        return self._get_svc(AgentContextSvc)
 
     def _bake_initial_events(
         self,
@@ -93,7 +99,7 @@ class SessionAgentSvc(Svc[SessionAgent]):
             ContextEvent.UseModel(model_name=model_name, model_provider=model_provider),
         ]
 
-        self._event_svc.bake_into_tree(_base)
+        self.event_svc.bake_into_tree(_base)
 
         return _base
 
@@ -160,4 +166,4 @@ class SessionAgentSvc(Svc[SessionAgent]):
             msg = "Session doesn't have a `ChatStart` event!"
             raise ValueError(msg)
 
-        return await self._event_svc.walk_down_unforked(ev=res)
+        return await self.event_svc.walk_down_unforked(anchor_event_id=res.id)
