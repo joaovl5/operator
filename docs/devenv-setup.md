@@ -7,9 +7,13 @@
    - `nix profile add nixpkgs#bashInteractive`
 3. **Install devenv:**
    - `nix profile add nixpkgs#devenv`
+4. **To enter devenv shell:**
+   - `devenv shell`
+   - If you want to avoid using this command everytime, [you can setup
+     auto-activation for your shell too.](https://devenv.sh/auto-activation/#setup)
 
->[!NOTE]
->We used `nix profile` commands for install examples since it's easier
->for beginners, but if you're already declaratively-installed packages
->in Nix (such as with home-manager, NixOS, nix-darwin, or others) you
->can safely use their alternative installation methods.
+> [!NOTE]
+> We used `nix profile` commands for install examples since it's easier
+> for beginners, but if you're already declaratively-installed packages
+> in Nix (such as with home-manager, NixOS, nix-darwin, or others) you
+> can safely use their alternative installation methods.
