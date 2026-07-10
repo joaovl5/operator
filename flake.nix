@@ -2,58 +2,41 @@
   description = "Operator - Operator - Operator";
 
   inputs = {
-    # nix
-    ## pkgs
-    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?ref=nixos-unstable&shallow=1";
-    ## systems
-    all-systems = {
-      url = "git+ssh://git@github.com/nix-systems/default.git?shallow=1";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    devenv = {
+      url = "github:cachix/devenv";
+      inputs = {
+        flake-parts.follows = "flake-parts";
+        nixpkgs.follows = "nixpkgs";
+        nixd.inputs.treefmt-nix.follows = "treefmt-nix";
+      };
     };
-    ## utils
-    flake-utils = {
-      url = "git+ssh://git@github.com/numtide/flake-utils.git?shallow=1";
-    };
-    treefmt-nix = {
-      url = "git+ssh://git@github.com/numtide/treefmt-nix.git?shallow=1";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    git-hooks = {
-      url = "git+ssh://git@github.com/cachix/git-hooks.nix?shallow=1";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs = {nixpkgs.follows = "nixpkgs";};
   };
 
   outputs = {
-    self,
     nixpkgs,
-    flake-utils,
-    treefmt-nix,
-    git-hooks,
+    flake-parts,
+    devenv,
     ...
-  }: let
-    flib = flake-utils.lib;
-  in
-    flib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {inherit system;};
-      treefmt_eval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
-      treefmt = treefmt_eval.config.build;
-      git_hooks_lib = git-hooks.lib.${system};
-      git_hook = git_hooks_lib.run (import ./git-hooks.nix pkgs);
-    in {
-      formatter = treefmt.wrapper;
-      checks = {
-        formatting = treefmt.check self;
+  } @ inputs:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      imports = [devenv.flakeModule];
+      systems = nixpkgs.lib.systems.flakeExposed;
+      perSystem = {pkgs, ...} @ args: {
+        devenv.shells.default = {
+          git-hooks = import ./nix/git-hooks.nix args;
+          treefmt = {
+            enable = true;
+            config = import ./nix/treefmt.nix args;
+          };
+          packages = with pkgs; [
+            just
+            prek
+          ];
+        };
       };
-
-      devShells.default = pkgs.mkShell {
-        inherit (git_hook) shellHook;
-        buildInputs = git_hook.enabledPackages;
-
-        packages = with pkgs; [
-          just
-          mdbook
-          prek
-        ];
-      };
-    });
+    };
 }

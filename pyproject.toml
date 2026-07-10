@@ -49,6 +49,7 @@
   reportUnknownParameterType          = true
   reportMissingParameterType          = true
   reportImplicitOverride              = true
+  reportArgumentType                  = false # you're stupid
   reportMissingTypeStubs              = false
   reportMissingSuperCall              = false
   reportImplicitStringConcatenation   = false
@@ -57,6 +58,7 @@
   reportUnannotatedClassAttribute     = false
   reportImportCycles                  = false # you're drunk pyright go home
   reportUnusedImport                  = false # ruff already does this
+  reportOptionalSubscript             = false # pyrefly is smarter
 
   # we do not care if basedpyright reports on those below, has too many false-positives
   reportAttributeAccessIssue = false
@@ -203,3 +205,9 @@
     type       = "exec"
     executable = "uv"
     options    = "run ruff format REVISION_SCRIPT_FILENAME"
+
+[tool.pyrefly]
+  project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+  ]

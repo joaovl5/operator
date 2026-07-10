@@ -3,7 +3,10 @@ from enum import StrEnum
 from functools import cached_property
 from typing import Self
 
+from openai import AsyncOpenAI
 from pydantic import Field, PositiveInt, SecretStr, model_validator
+from pydantic_ai.providers import Provider
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from operator_shared.settings.types import Entries, Fac, SettingsBase
 
@@ -16,7 +19,7 @@ class _TakesEnv(SettingsBase):
 
 class _KnownAPI(StrEnum):
     OPENAI = "openai"
-    OPENROUTER = "openruter"
+    OPENROUTER = "openrouter"
     GROQ = "groq"
 
 
@@ -60,6 +63,15 @@ class _ProviderSettings(SettingsBase):
                 return x
             case _TakesAPIKnown():
                 return _API_KNOWN_TO_URL[x.known]
+
+    def get_pydantic_ai_provider(self) -> Provider:
+        """Get Pydantic AI provider instance."""
+        return OpenAIProvider(
+            openai_client=AsyncOpenAI(
+                api_key=self.comp_api_key,
+                base_url=self.comp_api_url,
+            )
+        )
 
 
 class ProvidersSettings(SettingsBase):

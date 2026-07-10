@@ -2,12 +2,15 @@ from asyncio import Event, Lock, Task, create_task
 from typing import TYPE_CHECKING
 
 from attrs import Factory, define, field
-from pydantic_ai.models import Model
+from pydantic_ai import Agent, ModelMessage
+from pydantic_ai.models.openai import OpenAIChatModel
 
+from operator_core.session.agent import AgentDeps, AgentType, construct_out_type
 from operator_core.session.types import EventPointer, IncomingMessage, StopAgentMethod
-from operator_db.objects import Session, SessionAgent, SessionAgentSvc, SessionSvc
+from operator_db.objects import ContextEvent, Session, SessionAgent, SessionAgentSvc, SessionSvc
 
 if TYPE_CHECKING:
+    from pydantic_ai.models import Model
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from operator_db.objects.base import IDType
@@ -17,10 +20,6 @@ if TYPE_CHECKING:
 type _AgentMap = dict[str, SessionAgent]
 type _AgentManagerMap = dict[str, SessionAgentManager]
 type _AgentLoopTaskMap = dict[str, Task[EventPointer]]
-
-
-def _bake_model(self: SessionAgentManager) -> Model:
-    pass
 
 
 @define(kw_only=True)
@@ -55,6 +54,61 @@ class SessionAgentManager:
     """Fired per-turn endings."""
 
     _pointer: EventPointer | None = field(init=False, default=None)
+    _model: Model | None = field(init=False, default=None)
+    _agent: Agent | None = field(init=False, default=None)
+
+    def _get_model_from_event(
+        self,
+        *,
+        event: ContextEvent.UseModel,
+    ) -> Model:
+        provider = self.settings.providers.entries.get(event.model_provider)
+        if not provider:
+            msg = f"Missing model provider: `{event.model_provider}`"
+            raise ValueError(msg)
+
+        return OpenAIChatModel(
+            model_name=event.model_name,
+            provider=provider.get_pydantic_ai_provider(),
+        )
+
+    async def _get_model(
+        self,
+        *,
+        force_refresh: bool = False,
+    ) -> Model:
+        """Returns cached Pydantic AI model, or fetches history events to create one.
+
+        If `force_refresh` is set, will fetch history regardless of caching or not.
+        """
+        if self._model and not force_refresh:
+            return self._model
+        pointer = await self.get_pointer()
+        event: ContextEvent.UseModel | None = await self.svc.event_svc.walk_up_to(
+            event_id=pointer.event_id,
+            stop_at=ContextEvent.UseModel,
+            return_only_start=True,
+        )
+        if not event:
+            # We always expect SOMETHING here at least, because we populate
+            # the history at the start of session with this.
+            msg = "Unexpectedly missing `UseModel` event."
+            raise ValueError(msg)
+        return self._get_model_from_event(event=event)
+
+    async def _get_agent(self) -> AgentType:
+        return Agent(
+            model=await self._get_model(),
+            deps_type=AgentDeps,
+            output_type=construct_out_type(),
+        )
+
+    async def _get_msg_history(self) -> list[ModelMessage]:
+        """Turn epoch into Pydantic AI message list."""
+        pointer = await self.get_pointer()
+        events = await self.svc.event_svc.walk_up_to(
+            event_id=pointer.event_id,
+        )
 
     async def _sync_db_pointer(self, event_id: IDType) -> None:
         if not self._pointer:
@@ -92,8 +146,6 @@ class SessionAgentManager:
 
         return pointer
 
-    _model: Model = Factory(_make_agent_model, takes_self=True)
-
     def refresh(self, db_obj: SessionAgent) -> None:
         """Replace internal db-object."""
         self.db_obj = db_obj
@@ -104,12 +156,16 @@ class SessionAgentManager:
         async with self.loop_lock:
             await self._do_turn()
         self.loop_end_ev.set()
-        return EventPointer()
 
     async def _do_turn(self) -> None:
         self.turn_end_ev.clear()
         async with self.turn_lock:
-            pass
+            agent = await self._get_agent()
+            history = await self._get_msg_history()
+            out = await agent.run_stream_events(
+                message_history=history,
+            )
+
         self.turn_end_ev.set()
 
     async def add_user_message(
@@ -130,7 +186,7 @@ class SessionAgentManager:
 
     async def _get_epoch(self) -> list[CtxEvent]:
         """Get current epoch from the perspective of an `EventPointer`."""
-        events: list[CtxEvent] = await self.svc.event_svc.walk_up_epoch(
+        events: list[CtxEvent] = await self.svc.event_svc.walk_up_to(
             event_id=self.pointer.event_id,
         )
         return events

@@ -1,5 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeIs
+
+import yaml
+from pydantic import JsonValue
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -41,3 +44,38 @@ def remove_empty(x: _Dict) -> _Dict:
         if not v and not isinstance(v, bool):
             del out[k]
     return out
+
+
+def present_json(
+    x: JsonValue,
+    *,
+    indent: int = 2,
+    sort_keys: bool = False,
+) -> str:
+    """Encode a JSON in a string through some means.
+
+    Current impl. will use YAML if value isn't scalar, otherwise will convert to string.
+    """
+    match x:
+        case None:
+            return "null"
+        case str():
+            return x
+        case bool():
+            return "true" if x else "false"
+        case int() | float():
+            return str(x)
+        case _:
+            return yaml.dump(
+                x,
+                indent=indent,
+                sort_keys=sort_keys,
+            )
+
+
+def ensure[T](x: T | None) -> TypeIs[T]:
+    """Ensure `x` isn't None, error otherwise."""
+    if x is None:
+        msg = "Needed `x` to not be `None`"
+        raise ValueError(msg)
+    return x

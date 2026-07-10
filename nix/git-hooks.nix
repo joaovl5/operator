@@ -1,5 +1,5 @@
-pkgs: {
-  src = ./.;
+{pkgs, ...}: {
+  src = ../.;
   package = pkgs.prek;
 
   hooks = {
@@ -14,19 +14,13 @@ pkgs: {
       enable = true;
       args = ["--maxkb=50000"];
     };
-    treefmt_nix = {
+
+    treefmt = {
       enable = true;
-      name = "treefmt_nix";
-      entry = "nix fmt";
+      name = "treefmt";
+      entry = "treefmt";
       pass_filenames = true;
       language = "unsupported";
-    };
-    nix_flake_check = {
-      enable = true;
-      name = "nix_flake_check";
-      entry = "nix flake check";
-      pass_filenames = false;
-      stages = ["pre-push"];
     };
   };
 }
