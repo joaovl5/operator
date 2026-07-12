@@ -59,6 +59,10 @@
   reportImportCycles                  = false # you're drunk pyright go home
   reportUnusedImport                  = false # ruff already does this
   reportOptionalSubscript             = false # pyrefly is smarter
+  reportOperatorIssue                 = false
+  reportUnknownLambdaType             = false
+  reportUnusedParameter               = false
+  reportAssignmentType                = false
 
   # we do not care if basedpyright reports on those below, has too many false-positives
   reportAttributeAccessIssue = false
@@ -138,6 +142,7 @@
       "D100",
       "D101",
       "PGH003",
+      "TID252",
     ]
     unfixable = ["ERA001", "F401", "F841", "T201", "T203"]
     [tool.ruff.lint.per-file-ignores]
