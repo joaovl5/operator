@@ -358,7 +358,7 @@ async def from_pyai_msg(
         "parent_id": parent_id,
     } | (_get_kw_pyai_req(msg) if isinstance(msg, ModelRequest) else _get_kw_pyai_res(msg))
 
-    inst = cls(**kw)
+    inst = ContextEvent.Message(**kw)
     if session:
         session.add(inst)
     if commit:
