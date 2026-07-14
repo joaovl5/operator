@@ -10,7 +10,6 @@ docs:
 
 alias f := format
 format:
-  nix fmt --quiet --log-format raw
   uv run ruff format --quiet
 
 alias a := alchemy

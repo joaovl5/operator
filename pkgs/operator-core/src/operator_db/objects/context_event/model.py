@@ -1,49 +1,44 @@
-from collections.abc import Mapping
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Self,
-    cast,
     final,
     overload,
     override,
 )
 
 from advanced_alchemy.types import JsonB
-from pydantic import JsonValue  # noqa: TC002
 from pydantic_ai import (
     BinaryContent,
-    FilePart,
-    ModelMessage,
-    ModelRequest,
-    ModelRequestPart,
-    ModelResponse,
-    ModelResponsePart,
-    RetryPromptPart,
-    SystemPromptPart,
-    TextContent,
-    TextPart,
-    ThinkingPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserContent,
-    UserPromptPart,
 )
-from sqlalchemy import ForeignKey, LargeBinary, func, literal, select
-from sqlalchemy.orm import Mapped, aliased, mapped_column, relationship
-
-from operator_shared.utils import ensure, present_json
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    LargeBinary,
+    String,
+    UniqueConstraint,
+    func,
+    literal,
+    select,
+)
+from sqlalchemy.orm import (
+    Mapped,
+    aliased,
+    mapped_column,
+    relationship,
+    selectin_polymorphic,
+    selectinload,
+)
 
 from ..base import Base, IDType, Repo, Svc
-from ..constants import TxtShort  # noqa: TC001
-from ..types import ForkReconcile, MsgAgent, MsgMetadata, MsgRole, MsgUser, OptJson, OptText
+from ..constants import TXT_SHORT
+from ..types import ForkReconcile, MsgMetadata, MsgRole, OptJson, OptText
 from ..utils import PydanticJSON, poly
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.sql.base import ExecutableOption
 
     from ..context import AgentContext
 
@@ -53,6 +48,36 @@ if TYPE_CHECKING:
     type _BinCnt = BinaryContent
 else:
     _BinCnt = BinaryContent
+
+type _JsonValue = None | bool | int | float | str | list[_JsonValue] | dict[str, _JsonValue]
+
+
+class MessageGroup(Base):
+    """Provider-facing Pydantic AI message split across context events.
+
+    This model is required because we store things such as ThinkingPart, FilePath, etc
+    as individual events, whereas a `ModelMessage` may be comprised of one or more of
+    these parts. Failing to recreate the `ModelMessage` in this way will cause caches to
+    break and, in some providers, fail to send requests completely.
+    """
+
+    __tablename__ = "message_groups"
+
+    context_id: Mapped[IDType] = mapped_column(
+        ForeignKey("contexts.id"),
+        index=True,
+    )
+    context: Mapped[AgentContext] = relationship(
+        foreign_keys=[context_id],
+        uselist=False,
+        back_populates="message_groups",
+    )
+
+    pydantic_message: Mapped[_JsonValue] = mapped_column(JsonB, nullable=False)
+    """Complete serialized Pydantic AI message used for exact replay."""
+
+    if TYPE_CHECKING:
+        messages: Mapped[list[ContextEvent.Message]]
 
 
 def get_poly_id(t: type[ContextEvent.Event]) -> str:
@@ -75,6 +100,7 @@ class ContextEvent:
             index=True,
         )
         context: Mapped[AgentContext] = relationship(
+            foreign_keys=[context_id],
             uselist=False,
             back_populates="events",
             lazy="immediate",
@@ -89,7 +115,7 @@ class ContextEvent:
             parent: Mapped[ContextEvent.Event | None]
             children: Mapped[list[ContextEvent.Event]]
 
-        type: Mapped[TxtShort] = mapped_column(index=True)
+        type: Mapped[str] = mapped_column(String(TXT_SHORT), index=True)
 
         __mapper_args__ = poly("event", root=True)
 
@@ -165,6 +191,19 @@ class ContextEvent:
             nullable=True,
         )
 
+        message_group_id: Mapped[IDType | None] = mapped_column(
+            ForeignKey("message_groups.id"),
+            index=True,
+            nullable=True,
+        )
+        message_group_index: Mapped[int | None] = mapped_column(nullable=True)
+        message_group: Mapped[MessageGroup | None] = relationship(
+            foreign_keys=[message_group_id],
+            uselist=False,
+            back_populates="messages",
+            lazy="immediate",
+        )
+
         @override
         async def as_dict(self) -> dict[str, Any]:
             return await super().as_dict() | {
@@ -175,6 +214,8 @@ class ContextEvent:
                 if (bin_contents := await self.aw.binary_contents)
                 else None,
                 "extra_metadata": await self.aw.extra_metadata,
+                "message_group_id": await self.aw.message_group_id,
+                "message_group_index": await self.aw.message_group_index,
             }
 
     @final
@@ -183,8 +224,8 @@ class ContextEvent:
 
         __mapper_args__ = poly("use_model")
 
-        model_name: Mapped[TxtShort] = mapped_column(nullable=True)
-        model_provider: Mapped[TxtShort] = mapped_column(nullable=True)
+        model_name: Mapped[str] = mapped_column(String(TXT_SHORT), nullable=True)
+        model_provider: Mapped[str] = mapped_column(String(TXT_SHORT), nullable=True)
 
         @override
         async def as_dict(self) -> dict[str, Any]:
@@ -199,7 +240,7 @@ class ContextEvent:
 
         __mapper_args__ = poly("use_permissions")
 
-        data: Mapped[JsonValue] = mapped_column(JsonB, nullable=True)
+        data: Mapped[_JsonValue] = mapped_column(JsonB, nullable=True)
 
         @override
         async def as_dict(self) -> dict[str, Any]:
@@ -207,16 +248,47 @@ class ContextEvent:
                 "data": await self.aw.data,
             }
 
-    type _IsEvent[T: Event] = T
-    type Type = _IsEvent[
-        EpochStart  # D
+    type Type = (
+        EpochStart  ##
         | ChatStart
         | Compression
         | Resuming
         | Message
         | UseModel
         | UsePermissions
-    ]
+    )
+
+
+_context_events_table = ContextEvent.Event.metadata.tables["context_events"]
+
+_context_events_table.append_constraint(
+    UniqueConstraint(
+        "context_id",
+        "id",
+        name="uq_context_events_context_id_id",
+    )
+)
+
+_context_events_table.append_constraint(
+    CheckConstraint(
+        "((message_group_id IS NULL AND message_group_index IS NULL) OR "
+        "(message_group_id IS NOT NULL AND message_group_index IS NOT NULL))",
+        name="ck_context_events_message_group_membership",
+    )
+)
+_context_events_table.append_constraint(
+    CheckConstraint(
+        "message_group_index IS NULL OR message_group_index >= 0",
+        name="ck_context_events_message_group_index_nonnegative",
+    )
+)
+_context_events_table.append_constraint(
+    UniqueConstraint(
+        "message_group_id",
+        "message_group_index",
+        name="uq_context_events_message_group_index",
+    )
+)
 
 
 CtxEvent = ContextEvent.Event
@@ -229,6 +301,13 @@ CtxEvent.parent = relationship(
 CtxEvent.children = relationship(
     CtxEvent,
     back_populates="parent",
+)
+MessageGroup.messages = relationship(
+    ContextEvent.Message,
+    foreign_keys=[ContextEvent.Message.message_group_id],
+    back_populates="message_group",
+    passive_deletes="all",
+    order_by=ContextEvent.Message.message_group_index,
 )
 
 
@@ -384,17 +463,38 @@ class ContextEventSvc(Svc[CtxEvent]):
             .where(chain.c.type != stop_poly_id)
         )
 
+        query_opts: Sequence[ExecutableOption] = (
+            selectin_polymorphic(
+                CtxEvent,
+                [
+                    ContextEvent.Message,
+                    ContextEvent.Resuming,
+                    ContextEvent.UseModel,
+                    ContextEvent.UsePermissions,
+                ],
+            ),
+            selectinload(
+                ContextEvent.Message.message_group,
+            ).selectinload(
+                MessageGroup.messages,
+            ),
+        )
+
         query = (
             select(CtxEvent)
-            .join(
-                chain,
-                CtxEvent.id == chain.c.id,
-            )
+            .options(*query_opts)
+            # overwrites currently-orm-mapped objects with new db data
+            .execution_options(populate_existing=True)
+            .join(chain, CtxEvent.id == chain.c.id)
             .order_by(chain.c.depth.desc())
         )
 
         if return_only_start:
             query = query.where(CtxEvent.type == stop_poly_id).limit(1)
-            return cast("EventT | None", await self._session.scalar(query))
+            event = await self._session.scalar(query)
+            if event is not None and not isinstance(event, stop_at):
+                error_msg = "Ancestry query returned an unexpected event type!"
+                raise TypeError(error_msg)
+            return event
 
         return list(await self._session.scalars(query))

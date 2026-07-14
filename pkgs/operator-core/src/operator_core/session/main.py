@@ -5,7 +5,8 @@ from attrs import Factory, define, field
 from pydantic_ai import Agent, ModelMessage
 from pydantic_ai.models.openai import OpenAIChatModel
 
-from operator_core.session.agent import AgentDeps, AgentType, construct_out_type
+from operator_core.events.transform import events_to_msgs
+from operator_core.session.agent import AgentType, ToolDeps, construct_out_type
 from operator_core.session.types import EventPointer, IncomingMessage, StopAgentMethod
 from operator_db.objects import ContextEvent, Session, SessionAgent, SessionAgentSvc, SessionSvc
 
@@ -55,7 +56,7 @@ class SessionAgentManager:
 
     _pointer: EventPointer | None = field(init=False, default=None)
     _model: Model | None = field(init=False, default=None)
-    _agent: Agent | None = field(init=False, default=None)
+    _agent: AgentType | None = field(init=False, default=None)
 
     def _get_model_from_event(
         self,
@@ -70,6 +71,14 @@ class SessionAgentManager:
         return OpenAIChatModel(
             model_name=event.model_name,
             provider=provider.get_pydantic_ai_provider(),
+        )
+
+    def _get_deps(self) -> ToolDeps:
+        """ToolDeps for agent."""
+        return ToolDeps(
+            settings=self.settings,
+            db_session=self.db_session,
+            db_obj=self.db_obj,
         )
 
     async def _get_model(
@@ -99,16 +108,15 @@ class SessionAgentManager:
     async def _get_agent(self) -> AgentType:
         return Agent(
             model=await self._get_model(),
-            deps_type=AgentDeps,
+            deps_type=ToolDeps,
             output_type=construct_out_type(),
         )
 
     async def _get_msg_history(self) -> list[ModelMessage]:
-        """Turn epoch into Pydantic AI message list."""
+        """Turn the current epoch into provider-safe Pydantic AI messages."""
         pointer = await self.get_pointer()
-        events = await self.svc.event_svc.walk_up_to(
-            event_id=pointer.event_id,
-        )
+        events = await self.svc.event_svc.walk_up_to(event_id=pointer.event_id)
+        return await events_to_msgs(events)
 
     async def _sync_db_pointer(self, event_id: IDType) -> None:
         if not self._pointer:
@@ -150,23 +158,31 @@ class SessionAgentManager:
         """Replace internal db-object."""
         self.db_obj = db_obj
 
-    async def do_loop(self) -> None:
+    async def do_loop(self) -> EventPointer:
         """Perform this agent's loop until a termination signal is triggered."""
         self.loop_end_ev.clear()
         async with self.loop_lock:
             await self._do_turn()
         self.loop_end_ev.set()
+        return await self.get_pointer()
 
     async def _do_turn(self) -> None:
+        """Perform a single agent turn."""
         self.turn_end_ev.clear()
         async with self.turn_lock:
-            agent = await self._get_agent()
-            history = await self._get_msg_history()
-            out = await agent.run_stream_events(
-                message_history=history,
-            )
+            await self._do_turn_locked()
 
         self.turn_end_ev.set()
+
+    async def _do_turn_locked(self) -> None:
+        """Handle turn operations while locked."""
+        agent = await self._get_agent()
+        async with agent.run_stream_events(
+            deps=self._get_deps(),
+            message_history=await self._get_msg_history(),
+        ) as stream:
+            async for _ in stream:
+                pass
 
     async def add_user_message(
         self,
@@ -186,8 +202,9 @@ class SessionAgentManager:
 
     async def _get_epoch(self) -> list[CtxEvent]:
         """Get current epoch from the perspective of an `EventPointer`."""
+        pointer = await self.get_pointer()
         events: list[CtxEvent] = await self.svc.event_svc.walk_up_to(
-            event_id=self.pointer.event_id,
+            event_id=pointer.event_id,
         )
         return events
 

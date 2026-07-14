@@ -1,7 +1,7 @@
-"""Initialize tables.
+"""initialize tables.
 
-Created at 2026-06-27 18:04:54.309303
-Revision ID: c7f1d5806d39
+Created at 2026-07-14 01:39:39.851207
+Revision ID: 017139a4a617
 Revises:
 
 """
@@ -23,7 +23,7 @@ __all__ = (
     "upgrade",
 )
 
-revision = "c7f1d5806d39"
+revision = "017139a4a617"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -53,11 +53,17 @@ def schema_upgrades() -> None:
     op.create_table(
         "contexts",
         sa.Column("id", sa.GUID(length=16), nullable=False),
+        sa.Column("pointer_event_id", sa.GUID(length=16), nullable=True),
         sa.Column("sa_orm_sentinel", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTimeUTC(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTimeUTC(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_contexts")),
     )
+    with op.batch_alter_table("contexts", schema=None) as batch_op:
+        batch_op.create_index(
+            batch_op.f("ix_contexts_pointer_event_id"), ["pointer_event_id"], unique=False
+        )
+
     op.create_table(
         "mail_messages",
         sa.Column("id", sa.GUID(length=16), nullable=False),
@@ -78,79 +84,29 @@ def schema_upgrades() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_sessions")),
     )
     op.create_table(
-        "context_events",
+        "message_groups",
         sa.Column("id", sa.GUID(length=16), nullable=False),
         sa.Column("context_id", sa.GUID(length=16), nullable=False),
-        sa.Column("parent_id", sa.GUID(length=16), nullable=True),
-        sa.Column("type", sa.String(length=256), nullable=False),
+        sa.Column(
+            "pydantic_message",
+            sa.JSON()
+            .with_variant(postgresql.JSONB(astext_type=Text()), "cockroachdb")
+            .with_variant(sa.ORA_JSONB(), "oracle")
+            .with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+            nullable=False,
+        ),
         sa.Column("sa_orm_sentinel", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTimeUTC(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTimeUTC(timezone=True), nullable=False),
-        sa.Column("reconcile_method", sa.JsonB, nullable=True),
-        sa.Column(
-            "role",
-            sa.Enum(
-                "SYSTEM",
-                "USER",
-                "AGENT_OTHER",
-                "AGENT_SELF",
-                "AGENT_SELF_THINKING",
-                "TOOL_CALL",
-                "TOOL_REPLY",
-                "TOOL_RETRY",
-                "FILE_SELF",
-                "FILE_OTHER",
-                name="msgrole",
-            ),
-            nullable=True,
-        ),
-        sa.Column("text", sa.Text(), nullable=True),
-        sa.Column(
-            "json",
-            sa.JSON()
-            .with_variant(postgresql.JSONB(astext_type=Text()), "cockroachdb")
-            .with_variant(sa.ORA_JSONB(), "oracle")
-            .with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
-            nullable=True,
-        ),
-        sa.Column("binary_contents", sa.LargeBinary(), nullable=True),
-        sa.Column(
-            "extra_metadata",
-            sa.JSON()
-            .with_variant(postgresql.JSONB(astext_type=Text()), "cockroachdb")
-            .with_variant(sa.ORA_JSONB(), "oracle")
-            .with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
-            nullable=True,
-        ),
-        sa.Column("model_name", sa.String(length=256), nullable=True),
-        sa.Column("model_provider", sa.String(length=256), nullable=True),
-        sa.Column(
-            "data",
-            sa.JSON()
-            .with_variant(postgresql.JSONB(astext_type=Text()), "cockroachdb")
-            .with_variant(sa.ORA_JSONB(), "oracle")
-            .with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
-            nullable=True,
-        ),
         sa.ForeignKeyConstraint(
-            ["context_id"], ["contexts.id"], name=op.f("fk_context_events_context_id_contexts")
+            ["context_id"], ["contexts.id"], name=op.f("fk_message_groups_context_id_contexts")
         ),
-        sa.ForeignKeyConstraint(
-            ["parent_id"],
-            ["context_events.id"],
-            name=op.f("fk_context_events_parent_id_context_events"),
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_context_events")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_message_groups")),
     )
-    with op.batch_alter_table("context_events", schema=None) as batch_op:
+    with op.batch_alter_table("message_groups", schema=None) as batch_op:
         batch_op.create_index(
-            batch_op.f("ix_context_events_context_id"), ["context_id"], unique=False
+            batch_op.f("ix_message_groups_context_id"), ["context_id"], unique=False
         )
-        batch_op.create_index(
-            batch_op.f("ix_context_events_parent_id"), ["parent_id"], unique=False
-        )
-        batch_op.create_index(batch_op.f("ix_context_events_role"), ["role"], unique=False)
-        batch_op.create_index(batch_op.f("ix_context_events_type"), ["type"], unique=False)
 
     op.create_table(
         "session_agents",
@@ -176,6 +132,110 @@ def schema_upgrades() -> None:
         )
         batch_op.create_index(
             batch_op.f("ix_session_agents_session_id"), ["session_id"], unique=False
+        )
+
+    op.create_table(
+        "context_events",
+        sa.Column("id", sa.GUID(length=16), nullable=False),
+        sa.Column("context_id", sa.GUID(length=16), nullable=False),
+        sa.Column("parent_id", sa.GUID(length=16), nullable=True),
+        sa.Column("type", sa.String(length=256), nullable=False),
+        sa.Column("sa_orm_sentinel", sa.Integer(), nullable=True),
+        sa.Column("created_at", sa.DateTimeUTC(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTimeUTC(timezone=True), nullable=False),
+        sa.Column("reconcile_method", sa.JsonB, nullable=True),
+        sa.Column(
+            "role",
+            sa.Enum(
+                "SYSTEM",
+                "USER",
+                "AGENT_OTHER",
+                "AGENT_SELF",
+                "AGENT_SELF_THINKING",
+                "TOOL_CALL",
+                "TOOL_REPLY",
+                "RETRY",
+                "FILE_SELF",
+                "FILE_OTHER",
+                name="msgrole",
+            ),
+            nullable=True,
+        ),
+        sa.Column("text", sa.Text(), nullable=True),
+        sa.Column(
+            "json",
+            sa.JSON()
+            .with_variant(postgresql.JSONB(astext_type=Text()), "cockroachdb")
+            .with_variant(sa.ORA_JSONB(), "oracle")
+            .with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+            nullable=True,
+        ),
+        sa.Column("binary_contents", sa.LargeBinary(), nullable=True),
+        sa.Column("extra_metadata", sa.JsonB, nullable=True),
+        sa.Column("message_group_id", sa.GUID(length=16), nullable=True),
+        sa.Column("message_group_index", sa.Integer(), nullable=True),
+        sa.Column("model_name", sa.String(length=256), nullable=True),
+        sa.Column("model_provider", sa.String(length=256), nullable=True),
+        sa.Column(
+            "data",
+            sa.JSON()
+            .with_variant(postgresql.JSONB(astext_type=Text()), "cockroachdb")
+            .with_variant(sa.ORA_JSONB(), "oracle")
+            .with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+            nullable=True,
+        ),
+        sa.CheckConstraint(
+            "((message_group_id IS NULL AND message_group_index IS NULL) OR (message_group_id IS NOT NULL AND message_group_index IS NOT NULL))",
+            name=op.f("ck_context_events_ck_context_events_message_group_membership"),
+        ),
+        sa.CheckConstraint(
+            "message_group_index IS NULL OR message_group_index >= 0",
+            name=op.f("ck_context_events_ck_context_events_message_group_index_nonnegative"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["context_id"], ["contexts.id"], name=op.f("fk_context_events_context_id_contexts")
+        ),
+        sa.ForeignKeyConstraint(
+            ["message_group_id"],
+            ["message_groups.id"],
+            name=op.f("fk_context_events_message_group_id_message_groups"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["parent_id"],
+            ["context_events.id"],
+            name=op.f("fk_context_events_parent_id_context_events"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_context_events")),
+        sa.UniqueConstraint("context_id", "id", name="uq_context_events_context_id_id"),
+        sa.UniqueConstraint(
+            "message_group_id", "message_group_index", name="uq_context_events_message_group_index"
+        ),
+    )
+    with op.batch_alter_table("context_events", schema=None) as batch_op:
+        batch_op.create_index(
+            batch_op.f("ix_context_events_context_id"), ["context_id"], unique=False
+        )
+        batch_op.create_index(
+            batch_op.f("ix_context_events_message_group_id"), ["message_group_id"], unique=False
+        )
+        batch_op.create_index(
+            batch_op.f("ix_context_events_parent_id"), ["parent_id"], unique=False
+        )
+        batch_op.create_index(batch_op.f("ix_context_events_role"), ["role"], unique=False)
+        batch_op.create_index(batch_op.f("ix_context_events_type"), ["type"], unique=False)
+
+    with op.batch_alter_table("contexts", schema=None) as batch_op:
+        batch_op.create_foreign_key(
+            "fk_contexts_id_pointer_event_id_context_events",
+            "context_events",
+            ["id", "pointer_event_id"],
+            ["context_id", "id"],
+        )
+        batch_op.create_foreign_key(
+            "fk_contexts_pointer_event_id_context_events",
+            "context_events",
+            ["pointer_event_id"],
+            ["id"],
         )
 
     op.create_table(
@@ -225,21 +285,39 @@ def schema_downgrades() -> None:
         batch_op.drop_index("ix_mail_receiver_state")
 
     op.drop_table("mail_mappings")
+    with op.batch_alter_table("contexts", schema=None) as batch_op:
+        batch_op.drop_constraint(
+            "fk_contexts_pointer_event_id_context_events",
+            type_="foreignkey",
+        )
+        batch_op.drop_constraint(
+            "fk_contexts_id_pointer_event_id_context_events",
+            type_="foreignkey",
+        )
+
+    with op.batch_alter_table("context_events", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_context_events_type"))
+        batch_op.drop_index(batch_op.f("ix_context_events_role"))
+        batch_op.drop_index(batch_op.f("ix_context_events_parent_id"))
+        batch_op.drop_index(batch_op.f("ix_context_events_message_group_id"))
+        batch_op.drop_index(batch_op.f("ix_context_events_context_id"))
+
+    op.drop_table("context_events")
     with op.batch_alter_table("session_agents", schema=None) as batch_op:
         batch_op.drop_index(batch_op.f("ix_session_agents_session_id"))
         batch_op.drop_index(batch_op.f("ix_session_agents_context_id"))
         batch_op.drop_index(batch_op.f("ix_session_agents_agent_id"))
 
     op.drop_table("session_agents")
-    with op.batch_alter_table("context_events", schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f("ix_context_events_type"))
-        batch_op.drop_index(batch_op.f("ix_context_events_role"))
-        batch_op.drop_index(batch_op.f("ix_context_events_parent_id"))
-        batch_op.drop_index(batch_op.f("ix_context_events_context_id"))
+    with op.batch_alter_table("message_groups", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_message_groups_context_id"))
 
-    op.drop_table("context_events")
+    op.drop_table("message_groups")
     op.drop_table("sessions")
     op.drop_table("mail_messages")
+    with op.batch_alter_table("contexts", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_contexts_pointer_event_id"))
+
     op.drop_table("contexts")
     # ### end Alembic commands ###
 

@@ -113,15 +113,18 @@ class SessionAgentSvc(Svc[SessionAgent]):
         permissions: dict[str, Any],
     ) -> dict[str, Any]:
         """Bake data for making an orchestrator agent as part of a larger query."""
+        events = self._bake_initial_events(
+            system_prompt=system_prompt,
+            model_name=model_name,
+            model_provider=model_provider,
+            permissions=permissions,
+        )
+
         return {
             "agent_id": agent_id,
             "context": {
-                "events": self._bake_initial_events(
-                    system_prompt=system_prompt,
-                    model_name=model_name,
-                    model_provider=model_provider,
-                    permissions=permissions,
-                ),
+                "events": events,
+                "pointer_event": events[-1],
             },
         }
 

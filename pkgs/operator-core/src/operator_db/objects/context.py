@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import ForeignKey, select, update
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, select, update
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, IDType, Repo, Svc
-from .context_event import CtxEvent  # noqa: TC001
+from .context_event import CtxEvent, MessageGroup
 
 if TYPE_CHECKING:
     from operator_db.objects.session_agent import SessionAgent
@@ -47,14 +47,28 @@ class AgentContext(Base):
     """
 
     __tablename__ = "contexts"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["id", "pointer_event_id"],
+            ["context_events.context_id", "context_events.id"],
+            name="fk_contexts_id_pointer_event_id_context_events",
+            use_alter=True,
+        ),
+    )
 
     pointer_event_id: Mapped[IDType | None] = mapped_column(
-        ForeignKey("context_events.id"),
+        ForeignKey(
+            "context_events.id",
+            name="fk_contexts_pointer_event_id_context_events",
+            use_alter=True,
+        ),
         index=True,
         nullable=True,
     )
     pointer_event: Mapped[CtxEvent | None] = relationship(
         uselist=False,
+        foreign_keys=[pointer_event_id],
+        post_update=True,
     )
 
     agent: Mapped[SessionAgent] = relationship(
@@ -63,6 +77,12 @@ class AgentContext(Base):
     )
 
     events: Mapped[list[CtxEvent]] = relationship(
+        foreign_keys=[CtxEvent.context_id],
+        back_populates="context",
+    )
+
+    message_groups: Mapped[list[MessageGroup]] = relationship(
+        foreign_keys=[MessageGroup.context_id],
         back_populates="context",
     )
 

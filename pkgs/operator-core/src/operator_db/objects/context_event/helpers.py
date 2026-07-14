@@ -1,9 +1,12 @@
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
+from itertools import pairwise
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 from pydantic import JsonValue, TypeAdapter
 from pydantic_ai import (
     BinaryContent,
+    CachePoint,
     FilePart,
     ModelMessage,
     ModelMessagesTypeAdapter,
@@ -25,7 +28,7 @@ from pydantic_ai import (
 from operator_db.objects.types import MsgAgent, MsgMetadata, MsgRole
 from operator_shared.utils import ensure, ensure_singleton, present_json
 
-from .model import ContextEvent
+from .model import ContextEvent, MessageGroup
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,6 +45,15 @@ else:
 _RAW_DATA_KEY = "raw_data"
 _RESPONSE_JSON_KEY = "operator_db.response_json"
 _JSON_VALUE_ADAPTER = TypeAdapter(JsonValue)
+
+
+def _get_pydantic_message(msg: ModelMessage) -> dict[str, Any]:
+    """Serialize one complete Pydantic AI message for exact replay."""
+    payload = ModelMessagesTypeAdapter.dump_python([msg], mode="json")[0]
+    if not isinstance(payload, dict):
+        error_msg = "Pydantic AI emitted an unexpected message payload!"
+        raise TypeError(error_msg)
+    return payload
 
 
 @overload
@@ -175,7 +187,7 @@ def _get_parts_res(ev: _Msg) -> tuple[_L[False], Sequence[ModelResponsePart]] | 
         case MsgRole.AGENT_SELF_THINKING:
             parts = (ThinkingPart(ensure(ev.text)),)
         case MsgRole.TOOL_CALL:
-            args = ensure(ev.json)
+            args = ev.json if ev.json is not None else ensure(ev.text)
             if not isinstance(args, str | dict):
                 msg = "Tool-call arguments must be a string or object!"
                 raise TypeError(msg)
@@ -192,10 +204,10 @@ def _get_parts_res(ev: _Msg) -> tuple[_L[False], Sequence[ModelResponsePart]] | 
     return False, parts
 
 
-async def ev_to_pyai_msg(
+async def _legacy_ev_to_pyai_msg(
     ev: _Msg,
     *,
-    session: AsyncSession,
+    session: AsyncSession | None,
     refresh: bool = True,
 ) -> ModelMessage:
     """Convert into Pydantic AI message.
@@ -205,6 +217,9 @@ async def ev_to_pyai_msg(
     """
     attrs = ("role", "text", "json", "binary_contents", "extra_metadata", "created_at")
     if refresh:
+        if not session:
+            error_msg = "Cannot have `refresh` set if `session` is `None`!"
+            raise ValueError(error_msg)
         await session.refresh(ev, attribute_names=attrs)
     out = _get_parts_req(ev) or _get_parts_res(ev)
     if not out:
@@ -237,6 +252,107 @@ async def ev_to_pyai_msg(
     return obj
 
 
+def _validate_grouped_events(
+    events: Sequence[_Msg],
+    *,
+    message_group: MessageGroup,
+    message: ModelMessage,
+) -> None:
+    """Validate that events are one complete on-path message group."""
+    if any(event.message_group is not message_group for event in events):
+        error_msg = "Message events belong to different groups!"
+        raise ValueError(error_msg)
+    if any(event.context_id != message_group.context_id for event in events):
+        error_msg = "Message group and events belong to different contexts!"
+        raise ValueError(error_msg)
+
+    indices = [event.message_group_index for event in events]
+    if indices != list(range(len(events))) or len(message.parts) != len(events):
+        error_msg = "Message group indices or part cardinality are incomplete!"
+        raise ValueError(error_msg)
+
+    member_ids = [member.id for member in message_group.messages]
+    event_ids = [event.id for event in events]
+    if member_ids != event_ids:
+        error_msg = "Message group is incomplete or contains off-path events!"
+        raise ValueError(error_msg)
+    if any(child.parent_id != parent.id for parent, child in pairwise(events)):
+        error_msg = "Message group events do not form a linear parent chain!"
+        raise ValueError(error_msg)
+
+
+_REFRESH_ATTRS = (
+    "context_id",
+    "parent_id",
+    "message_group_id",
+    "message_group_index",
+    "message_group",
+    "role",
+    "text",
+    "json",
+    "binary_contents",
+    "extra_metadata",
+    "created_at",
+)
+
+
+@overload
+async def events_to_pyai_msg(
+    events: Sequence[_Msg],
+    *,
+    session: AsyncSession,
+    refresh: _L[True] = True,
+) -> ModelMessage: ...
+@overload
+async def events_to_pyai_msg(
+    events: Sequence[_Msg],
+    *,
+    session: AsyncSession | None,
+    refresh: _L[False],
+) -> ModelMessage: ...
+
+
+async def events_to_pyai_msg(
+    events: Sequence[_Msg],
+    *,
+    session: AsyncSession | None,
+    refresh: bool = True,
+) -> ModelMessage:
+    """Collapse one complete message-event group into one Pydantic AI message."""
+    if not events:
+        error_msg = "Cannot construct a message from no events!"
+        raise ValueError(error_msg)
+
+    if refresh:
+        if not session:
+            error_msg = "Cannot have `refresh` set if `session` is `None`!"
+            raise ValueError(error_msg)
+        for event in events:
+            await session.refresh(event, attribute_names=_REFRESH_ATTRS)
+
+    message_group = events[0].message_group
+    if message_group is None:
+        if any(event.message_group is not None for event in events[1:]):
+            error_msg = "Cannot mix grouped and ungrouped message events!"
+            raise ValueError(error_msg)
+        if len(events) != 1:
+            error_msg = "Multiple ungrouped events cannot form one message!"
+            raise ValueError(error_msg)
+        return await _legacy_ev_to_pyai_msg(events[0], session=session, refresh=False)
+
+    if refresh:
+        if not session:
+            error_msg = "Cannot have `refresh` set if `session` is `None`!"
+            raise ValueError(error_msg)
+        await session.refresh(
+            message_group,
+            attribute_names=("context_id", "pydantic_message", "messages"),
+        )
+    message = ModelMessagesTypeAdapter.validate_python([message_group.pydantic_message])[0]
+    _validate_grouped_events(events, message_group=message_group, message=message)
+    return message
+
+
 def _ensure_req_parts_len(parts: Sequence[Any]) -> None:
     parts_len = len(parts)
     if parts_len == 0:
@@ -253,10 +369,6 @@ def _ensure_user_cnts_len(user_cnts: Sequence[Any] | str) -> None:
     if not user_cnts:
         error_msg = "User content was empty!"
         raise ValueError(error_msg)
-
-
-def _ensure_bin_cnt(bin_cnt_lst: Sequence[BinaryContent]) -> BinaryContent | None:
-    return ensure_singleton(bin_cnt_lst, none_ok=True)
 
 
 def _get_pydantic_metadata(msg: ModelMessage) -> dict[str, Any]:
@@ -292,10 +404,27 @@ def _new_event_kw(msg: ModelMessage) -> dict[str, Any]:
 def _set_raw_content(kw: dict[str, Any], value: object) -> None:
     raw_data = _JSON_VALUE_ADAPTER.validate_python(value)
     key = "text" if isinstance(raw_data, str) else "json"
-    if kw[key] is not None:
-        error_msg = f"Unexpected more than one {key} value in user content!"
-        raise ValueError(error_msg)
-    kw[key] = raw_data
+    current = kw[key]
+    if current is None:
+        kw[key] = raw_data
+    elif key == "text":
+        kw[key] = f"{current}\n\n{raw_data}"
+    else:
+        kw[key] = [current, raw_data]
+
+
+def _get_serialized_part_content(msg: ModelRequest) -> JsonValue:
+    """Extract JSON-mode content from a single serialized request part."""
+    payload = _get_pydantic_message(msg)
+    parts = payload.get("parts")
+    if not isinstance(parts, list) or len(parts) != 1:
+        error_msg = "Pydantic AI emitted an unexpected serialized part list!"
+        raise TypeError(error_msg)
+    part = parts[0]
+    if not isinstance(part, Mapping) or "content" not in part:
+        error_msg = "Pydantic AI emitted a serialized part without content!"
+        raise TypeError(error_msg)
+    return _JSON_VALUE_ADAPTER.validate_python(part["content"])
 
 
 def _handle_req_part_partial(
@@ -310,9 +439,9 @@ def _handle_req_part_partial(
         case SystemPromptPart(content=text):
             kw["text"] = text
             kw["role"] = MsgRole.SYSTEM
-        case ToolReturnPart(tool_name=tool_name, content=cnt):
+        case ToolReturnPart(tool_name=tool_name):
             kw["role"] = MsgRole.TOOL_REPLY
-            kw["json"] = _JSON_VALUE_ADAPTER.validate_python(cnt)
+            kw["json"] = _get_serialized_part_content(msg)
             kw["extra_metadata"]["tool_name"] = tool_name
         case RetryPromptPart(tool_name=tool_name, content=cnt):
             kw["role"] = MsgRole.RETRY
@@ -321,8 +450,7 @@ def _handle_req_part_partial(
         case UserPromptPart(content=cnts):
             user_cnts = cnts
         case _:
-            error_msg = "Unexpected request part!"
-            raise ValueError(error_msg)
+            kw["role"] = MsgRole.USER
     return kw, user_cnts
 
 
@@ -346,11 +474,10 @@ def _apply_user_contents(
             _set_raw_content(kw, raw_data)
         elif isinstance(item, BinaryContent):
             bin_cnts.append(item)
-        else:
-            error_msg = f"Unsupported user content type: {type(item).__name__}"
-            raise TypeError(error_msg)
+        elif isinstance(item, CachePoint):
+            continue
 
-    bin_cnt = _ensure_bin_cnt(bin_cnts)
+    bin_cnt = bin_cnts[0] if bin_cnts else None
     if bin_cnt is not None:
         kw["binary_contents"] = bin_cnt.data
         kw["extra_metadata"]["mimetype"] = bin_cnt.media_type
@@ -400,6 +527,16 @@ def _get_response_json_marker(msg: ModelResponse) -> tuple[int, JsonValue] | Non
     return part_index, _JSON_VALUE_ADAPTER.validate_python(marker["value"])
 
 
+def _apply_tool_call_projection(kw: dict[str, Any], part: ToolCallPart) -> None:
+    """Project searchable tool-call fields without changing replay data."""
+    kw["role"] = MsgRole.TOOL_CALL
+    if isinstance(part.args, str):
+        kw["text"] = part.args
+    else:
+        kw["json"] = part.args
+    kw["extra_metadata"]["tool_name"] = part.tool_name
+
+
 def _get_kw_pyai_res(msg: ModelResponse) -> dict[str, Any]:
     kw = _new_event_kw(msg)
     kw["created_at"] = msg.timestamp
@@ -407,9 +544,8 @@ def _get_kw_pyai_res(msg: ModelResponse) -> dict[str, Any]:
     supported = (TextPart, ThinkingPart, FilePart, ToolCallPart)
     unsupported = [part for part in msg.parts if not isinstance(part, supported)]
     if unsupported:
-        names = ", ".join(type(part).__name__ for part in unsupported)
-        error_msg = f"Unsupported response part types: {names}"
-        raise ValueError(error_msg)
+        kw["role"] = MsgRole.AGENT_SELF
+        return kw
 
     text_parts = [
         (index, part) for index, part in enumerate(msg.parts) if isinstance(part, TextPart)
@@ -451,11 +587,40 @@ def _get_kw_pyai_res(msg: ModelResponse) -> dict[str, Any]:
         kw["binary_contents"] = p_file.content.data
         kw["extra_metadata"]["mimetype"] = p_file.content.media_type
     else:
-        p_tool = ensure_singleton(tool_parts)
-        kw["role"] = MsgRole.TOOL_CALL
-        kw["json"] = p_tool.args_as_dict(raise_if_invalid=True)
-        kw["extra_metadata"]["tool_name"] = p_tool.tool_name
+        _apply_tool_call_projection(kw, ensure_singleton(tool_parts))
     return kw
+
+
+def _get_kw_pyai_part(
+    msg: ModelMessage,
+    *,
+    part_index: int,
+) -> dict[str, Any]:
+    """Normalize one top-level message part into one context event."""
+    if isinstance(msg, ModelRequest):
+        part = msg.parts[part_index]
+        return _get_kw_pyai_req(replace(msg, parts=(part,)))
+
+    part = msg.parts[part_index]
+
+    json_marker = _get_response_json_marker(msg)
+    metadata = dict(msg.metadata or {})
+    if json_marker is not None:
+        json_index, json_value = json_marker
+        if json_index >= len(msg.parts) or not isinstance(msg.parts[json_index], TextPart):
+            error_msg = "Response JSON metadata points to a non-text part!"
+            raise ValueError(error_msg)
+        if json_index == part_index:
+            metadata[_RESPONSE_JSON_KEY] = {"part_index": 0, "value": json_value}
+        else:
+            metadata.pop(_RESPONSE_JSON_KEY, None)
+
+    part_msg = replace(
+        msg,
+        parts=(part,),
+        metadata=metadata or None,
+    )
+    return _get_kw_pyai_res(part_msg)
 
 
 async def from_pyai_msg(
@@ -464,34 +629,40 @@ async def from_pyai_msg(
     context_id: IDType,
     parent_id: IDType,
     session: AsyncSession | None = None,
-    commit: bool = False,
-) -> _Msg:
-    """Convert Pydantic AI message into db object.
+) -> list[_Msg]:
+    """Split one Pydantic AI message into a serial group of context events.
 
-    Args:
-        msg: `ModelMessage` instance.
-        context_id: linked context ID.
-        parent_id: parent event ID.
-        session: if passed, will add returned object into session.
-        commit: if set, will commit the session (requires `session`) and refresh
-                it to populate the event ID.
+    The returned events are ordered from the first message part to the last. A caller
+    advancing a context pointer must use the final event.
 
-    Returns:
-        Instance of `ContextEvent.Message`
+    If a session is supplied, the objects are added and flushed but not committed.
     """
-    kw = {
-        "context_id": context_id,
-        "parent_id": parent_id,
-    } | (_get_kw_pyai_req(msg) if isinstance(msg, ModelRequest) else _get_kw_pyai_res(msg))
-    kw["extra_metadata"] = MsgMetadata.model_validate(kw["extra_metadata"])
+    if not msg.parts:
+        error_msg = "Parts shouldn't be empty!"
+        raise ValueError(error_msg)
 
-    inst = ContextEvent.Message(**kw)
+    message_group = MessageGroup(
+        context_id=context_id,
+        pydantic_message=_get_pydantic_message(msg),
+    )
+    events: list[_Msg] = []
+    previous: _Msg | None = None
+    for part_index in range(len(msg.parts)):
+        kw: dict[str, Any] = {
+            "context_id": context_id,
+            "message_group": message_group,
+            "message_group_index": part_index,
+        }
+        if previous is None:
+            kw["parent_id"] = parent_id
+        else:
+            kw["parent"] = previous
+        kw.update(_get_kw_pyai_part(msg, part_index=part_index))
+        kw["extra_metadata"] = MsgMetadata.model_validate(kw["extra_metadata"])
+        previous = ContextEvent.Message(**kw)
+        events.append(previous)
+
     if session:
-        session.add(inst)
-    if commit:
-        if not session:
-            error_msg = "Cannot set `commit` to True if `session` is absent!"
-            raise ValueError(error_msg)
-        await session.commit()
-        await session.refresh(inst, attribute_names=("id",))
-    return inst
+        session.add_all(events)
+        await session.flush()
+    return events

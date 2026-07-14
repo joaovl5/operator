@@ -14,6 +14,7 @@
     "operator-core",
     "operator-cli",
     "advanced-alchemy>=1.11.0",
+    "pyyaml>=6.0.3",
   ]
 
 [tool.uv.workspace]

@@ -2,6 +2,7 @@ import asyncio
 from functools import cache
 from typing import TYPE_CHECKING, Any, Literal
 
+from advanced_alchemy.alembic.commands import AlembicCommandConfig
 from alembic import context
 from alembic.autogenerate import rewriter
 
@@ -11,12 +12,14 @@ from operator_db.objects.utils import PydanticJSON
 from operator_shared.settings.loader import load_operator_settings
 
 if TYPE_CHECKING:
-    from advanced_alchemy.alembic.commands import AlembicCommandConfig
     from sqlalchemy.engine import Connection
 
     from operator_shared.settings.main import OperatorSettings
 
-config: AlembicCommandConfig = context.config  # pyright: ignore[reportAssignmentType]
+config = context.config
+if not isinstance(config, AlembicCommandConfig):
+    error_msg = "Operator migrations require Advanced Alchemy configuration!"
+    raise TypeError(error_msg)
 writer = rewriter.Rewriter()
 
 
@@ -84,10 +87,27 @@ async def run_async_migrations() -> None:
     """Run migrations through an async engine for Alembic CLI usage."""
     connectable = get_async_engine(_get_op_settings())
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
+    try:
+        async with connectable.connect() as connection:
+            sqlite = connection.dialect.name == "sqlite"
+            if sqlite:
+                await connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+                await connection.commit()
+            try:
+                await connection.run_sync(do_run_migrations)
+                if sqlite:
+                    check = await connection.exec_driver_sql("PRAGMA foreign_key_check")
+                    if check.first():
+                        error_msg = "SQLite foreign-key violations remain after migration!"
+                        raise RuntimeError(error_msg)
+            finally:
+                if sqlite:
+                    if connection.in_transaction():
+                        await connection.rollback()
+                    await connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+                    await connection.commit()
+    finally:
+        await connectable.dispose()
 
 
 def run_migrations_online() -> None:

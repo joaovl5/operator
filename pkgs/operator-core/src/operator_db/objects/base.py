@@ -39,12 +39,13 @@ class Svc[T: Base](SQLAlchemyAsyncRepositoryService[T]):
     _svc_cache: dict[type[_Svc], _Svc]
     _settings: OperatorSettings
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         *_args: Any,
         settings: OperatorSettings,
         **_kwargs: Any,
     ) -> None:
+        """Initialize `Svc` instance."""
         super().__init__(*_args, **_kwargs)
         self._settings = settings
 
@@ -62,5 +63,5 @@ class Svc[T: Base](SQLAlchemyAsyncRepositoryService[T]):
                 settings=self._settings,
             )
 
-        svc: S = self._svc_cache[svc_cls]  # pyright: ignore[reportAssignmentType]
+        svc: S = self._svc_cache[svc_cls]
         return svc
