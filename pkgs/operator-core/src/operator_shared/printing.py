@@ -8,13 +8,13 @@ p = rprint
 
 
 def pp(obj: Any) -> None:
-    """Pretty-printing function."""
-    cons = get_console()
-    cons.print(
-        Pretty(
-            obj,
-            margin=100,
-            indent_size=2,
-            indent_guides=True,
-        )
+  """Pretty-printing function."""
+  cons = get_console()
+  cons.print(
+    Pretty(
+      obj,
+      margin=100,
+      indent_size=2,
+      indent_guides=True,
     )
+  )

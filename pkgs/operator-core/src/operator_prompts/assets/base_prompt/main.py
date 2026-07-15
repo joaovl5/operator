@@ -1,44 +1,46 @@
 from typing import TYPE_CHECKING
 
 from operator_prompts.base import (
-    PROMPT_REGISTRY,
-    PROMPT_TRAIT_REGISTRY,
-    BasePrompt,
-    PromptTrait,
-    PromptTraitType,
-    bake_prompt,
+  PROMPT_REGISTRY,
+  PROMPT_TRAIT_REGISTRY,
+  BasePrompt,
+  PromptTrait,
+  PromptTraitType,
+  bake_prompt,
 )
 from operator_shared.time.utils import mk_time
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+  from collections.abc import Callable
 
 trait_key = PROMPT_TRAIT_REGISTRY.register(
-    PromptTrait(
-        trait_type=PromptTraitType.ROOT_PROMPT,
-        trait_name="root_prompt",
-    )
+  PromptTrait(
+    trait_type=PromptTraitType.ROOT_PROMPT,
+    trait_name="root_prompt",
+  )
 )
 
 
-def _mk(identifier: str, r: str | Callable[[], str], /) -> type[BasePrompt]:
-    return bake_prompt(
-        identifier=identifier,
-        trait=trait_key,
-        rendering=r,
-    )
+def _mk(
+  identifier: str, r: str | Callable[[], str], /
+) -> type[BasePrompt]:
+  return bake_prompt(
+    identifier=identifier,
+    trait=trait_key,
+    rendering=r,
+  )
 
 
 PROMPT_REGISTRY.register_many(
-    _mk(
-        "3rd-1st-person",
-        lambda: (
-            (
-                cur_date_raw := mk_time(),
-                cur_date := cur_date_raw.strftime("%d/%m/%Y, %H:%M:%S"),
-            )
-            and (
-                f"""
+  _mk(
+    "3rd-1st-person",
+    lambda: (
+      (
+        cur_date_raw := mk_time(),
+        cur_date := cur_date_raw.strftime("%d/%m/%Y, %H:%M:%S"),
+      )
+      and (
+        f"""
             The agent is now connected, running inside the harness `operator`
 
             Its guidelines are:
@@ -59,7 +61,7 @@ PROMPT_REGISTRY.register_many(
 
             Datetime is {cur_date}.
             """
-            )
-        ),
+      )
     ),
+  ),
 )

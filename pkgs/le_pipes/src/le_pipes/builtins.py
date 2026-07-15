@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, TypeIs, overload
 from .base import Pipe
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator, Sequence
+  from collections.abc import Callable, Iterable, Iterator, Sequence
 
 
 # `w` values are required for 'type witnesses' because python type checkers are all
@@ -13,56 +13,56 @@ if TYPE_CHECKING:
 
 @Pipe
 def take[T](
-    iterable: Iterable[T],
-    w: type[T],
-    n: int,
+  iterable: Iterable[T],
+  w: type[T],
+  n: int,
 ) -> Iterator[T]:
-    """Yield at most `n` items from `iter`."""
-    del w
+  """Yield at most `n` items from `iter`."""
+  del w
+  if not n:
+    return
+  for i in iterable:
+    yield i
+    n -= 1
     if not n:
-        return
-    for i in iterable:
-        yield i
-        n -= 1
-        if not n:
-            break
+      break
 
 
 @Pipe
 def where[T, H](
-    iterable: Iterable[T],
-    w: type[H],
-    # yeah its gonna be just `TypeIs` for now because overloading didnt work and i do
-    # not care enough to work on this any further
-    predicate: Callable[[T], TypeIs[H]],
+  iterable: Iterable[T],
+  w: type[H],
+  # yeah its gonna be just `TypeIs` for now because overloading didnt work and i do
+  # not care enough to work on this any further
+  predicate: Callable[[T], TypeIs[H]],
 ) -> Iterator[H]:
-    """Yield elements fulfilling a `predicate`."""
-    del w
-    return (x for x in iterable if predicate(x))
+  """Yield elements fulfilling a `predicate`."""
+  del w
+  return (x for x in iterable if predicate(x))
 
 
 @Pipe
 def holo[T, H](
-    iterable: Iterable[T],
-    w: type[H],
-    predicate: Callable[[T], H],
+  iterable: Iterable[T],
+  w: type[H],
+  predicate: Callable[[T], H],
 ) -> Iterator[H]:
-    """Transform iterable via a `predicate`, a 'hologram'."""
-    del w
-    return (predicate(x) for x in iterable)
+  """Transform iterable via a `predicate`, a 'hologram'."""
+  del w
+  return (predicate(x) for x in iterable)
 
 
 @Pipe
 def collect[T](
-    iterable: Iterable[T],
-    w: type[T],
+  iterable: Iterable[T],
+  w: type[T],
 ) -> list[T]:
-    """Collect elements from `iterable` into a list."""
-    del w
-    return list(iterable)
+  """Collect elements from `iterable` into a list."""
+  del w
+  return list(iterable)
 
 
 @Pipe
 def size[T](sequence: Sequence[T]) -> int:
-    """Alias for `len`."""
-    return len(sequence)
+  """Alias for `len`."""
+  return len(sequence)

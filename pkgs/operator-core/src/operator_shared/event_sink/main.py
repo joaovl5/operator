@@ -4,7 +4,7 @@ from typing import Protocol
 
 
 class EventSink[EventT](Protocol):
-    """Receives async events."""
+  """Receives async events."""
 
-    async def __call__(self, *, event: EventT) -> None:
-        """Handle one event."""
+  async def __call__(self, *, event: EventT) -> None:
+    """Handle one event."""

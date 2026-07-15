@@ -11,9 +11,9 @@ USER_ID = "user"
 
 
 class UserMessage(BaseModel):
-    """Message object for direct communication to an agent."""
+  """Message object for direct communication to an agent."""
 
-    contents: str
-    target_agent_id: str = Field(default=ORCHESTRATOR_ID)
-    source_user_id: str = Field(default=USER_ID)
-    sent_at: datetime = Field(default_factory=mk_time)
+  contents: str
+  target_agent_id: str = Field(default=ORCHESTRATOR_ID)
+  source_user_id: str = Field(default=USER_ID)
+  sent_at: datetime = Field(default_factory=mk_time)

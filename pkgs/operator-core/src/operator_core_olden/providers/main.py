@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pydantic_ai.models import Model
+  from pydantic_ai.models import Model
 
 
 class ModelProvider[ConfigT](ABC):
-    """Turns generic model configs into pydantic-ai models."""
+  """Turns generic model configs into pydantic-ai models."""
 
-    @abstractmethod
-    def build_model(self, *, model_config: ConfigT) -> Model:
-        """Build a pydantic-ai model instance from the provider."""
+  @abstractmethod
+  def build_model(self, *, model_config: ConfigT) -> Model:
+    """Build a pydantic-ai model instance from the provider."""

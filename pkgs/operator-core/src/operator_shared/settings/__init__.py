@@ -8,12 +8,12 @@ from .model import ModelsSettings, ProvidersSettings
 from .oauth import OAuthSettings
 
 __all__ = [
-    "AgentsSettings",
-    "DatabaseSettings",
-    "ModelsSettings",
-    "OAuthSettings",
-    "OperatorSettings",
-    "ProvidersSettings",
-    "get_default_config_path",
-    "load_operator_settings",
+  "AgentsSettings",
+  "DatabaseSettings",
+  "ModelsSettings",
+  "OAuthSettings",
+  "OperatorSettings",
+  "ProvidersSettings",
+  "get_default_config_path",
+  "load_operator_settings",
 ]

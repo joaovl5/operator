@@ -15,6 +15,7 @@
     "operator-cli",
     "advanced-alchemy>=1.11.0",
     "pyyaml>=6.0.3",
+    "msgspec>=0.21.1",
   ]
 
 [tool.uv.workspace]
@@ -47,7 +48,6 @@
   reportExplicitAny = false
   reportAny         = false
 
-  reportUnknownParameterType          = true
   reportMissingParameterType          = true
   reportImplicitOverride              = true
   reportArgumentType                  = false # you're stupid
@@ -56,6 +56,7 @@
   reportImplicitStringConcatenation   = false
   reportCallInDefaultInitializer      = true
   reportUninitializedInstanceVariable = false
+  reportUnknownParameterType          = false
   reportUnannotatedClassAttribute     = false
   reportImportCycles                  = false # you're drunk pyright go home
   reportUnusedImport                  = false # ruff already does this
@@ -76,7 +77,8 @@
   reportPrivateUsage = false
 [tool.ruff]
   fix            = false
-  line-length    = 100
+  line-length    = 70
+  indent-width   = 2
   src            = ["pkgs/*/src"]
   target-version = "py314"
   [tool.ruff.format]
@@ -174,7 +176,7 @@
         "operator_shared.forms.BaseForm",
       ]
     [tool.ruff.lint.pycodestyle]
-      max-doc-length = 100
+      max-doc-length = 70
     [tool.ruff.lint.pydocstyle]
       convention = "google"
     [tool.ruff.lint.pylint]

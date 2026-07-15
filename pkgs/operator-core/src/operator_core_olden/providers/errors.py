@@ -2,7 +2,7 @@
 
 
 class ProviderError(ValueError):
-    """Base error for provider package operations."""
+  """Base error for provider package operations."""
 
 
 __all__ = ["ProviderError"]

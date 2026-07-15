@@ -10,7 +10,7 @@ TXT_LARGE = 16912
 
 
 def _txt(x: int) -> MappedColumn[Any]:
-    return mapped_column(String(x))
+  return mapped_column(String(x))
 
 
 type TxtSlug = Annotated[str, _txt(TXT_SLUG)]

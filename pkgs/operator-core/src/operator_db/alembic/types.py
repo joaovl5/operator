@@ -2,18 +2,18 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from advanced_alchemy.types import (
-    GUID,
-    ORA_JSONB,
-    Bool,
-    DateTimeUTC,
-    EncryptedString,
-    EncryptedText,
-    FernetBackend,
-    JsonB,
-    OneTimeCode,
-    PasswordHash,
-    StoredObject,
-    TOTPSecret,
+  GUID,
+  ORA_JSONB,
+  Bool,
+  DateTimeUTC,
+  EncryptedString,
+  EncryptedText,
+  FernetBackend,
+  JsonB,
+  OneTimeCode,
+  PasswordHash,
+  StoredObject,
+  TOTPSecret,
 )
 from advanced_alchemy.types.encrypted_string import PGCryptoBackend
 from advanced_alchemy.types.password_hash.argon2 import Argon2Hasher
@@ -43,6 +43,6 @@ sa.PydanticJSON = PydanticJSON
 type AlembicRev = str | Sequence[str] | None
 
 __all__ = (
-    "AlembicRev",
-    "sa",
+  "AlembicRev",
+  "sa",
 )

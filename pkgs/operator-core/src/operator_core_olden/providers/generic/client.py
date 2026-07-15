@@ -8,38 +8,40 @@ from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from operator_core_olden.providers import ModelProvider
-from operator_core_olden.providers.generic.types import GenericModelConfig
+from operator_core_olden.providers.generic.types import (
+  GenericModelConfig,
+)
 
 if TYPE_CHECKING:
-    from pydantic_ai.models import Model
+  from pydantic_ai.models import Model
 
 
 def get_generic_client(*, api_key: str, base_url: str) -> AsyncOpenAI:
-    """Create an OpenAI-compatible client."""
-    return AsyncOpenAI(api_key=api_key, base_url=base_url)
+  """Create an OpenAI-compatible client."""
+  return AsyncOpenAI(api_key=api_key, base_url=base_url)
 
 
 @define(kw_only=True)
 class GenericModelProvider(ModelProvider[GenericModelConfig]):
-    """Z.AI provider using the OpenAI-compatible chat API."""
+  """Z.AI provider using the OpenAI-compatible chat API."""
 
-    openai_client: AsyncOpenAI
+  openai_client: AsyncOpenAI
 
-    def build_provider(self) -> OpenAIProvider:
-        """Build the pydantic-ai provider wrapper."""
-        return OpenAIProvider(openai_client=self.openai_client)
+  def build_provider(self) -> OpenAIProvider:
+    """Build the pydantic-ai provider wrapper."""
+    return OpenAIProvider(openai_client=self.openai_client)
 
-    @override
-    def build_model(
-        self,
-        *,
-        model_config: GenericModelConfig,
-    ) -> Model:
-        """Build a chat model for the configured Z.AI client."""
-        return OpenAIChatModel(
-            model_name=model_config.name,
-            provider=self.build_provider(),
-            settings=model_config.settings.to_model_settings(
-                temperature=model_config.temperature,
-            ),
-        )
+  @override
+  def build_model(
+    self,
+    *,
+    model_config: GenericModelConfig,
+  ) -> Model:
+    """Build a chat model for the configured Z.AI client."""
+    return OpenAIChatModel(
+      model_name=model_config.name,
+      provider=self.build_provider(),
+      settings=model_config.settings.to_model_settings(
+        temperature=model_config.temperature,
+      ),
+    )
