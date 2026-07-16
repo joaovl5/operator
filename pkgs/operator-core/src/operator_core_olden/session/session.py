@@ -8,6 +8,7 @@ from operator_db.objects.agent import (
   AgentRequestSchema,
   SessionAgentService,
 )
+from operator_db.objects.history import HistoryService
 
 from operator_core_olden.agent.main import OpAgent
 from operator_core_olden.agent.streaming import (
@@ -40,7 +41,6 @@ from operator_core_olden.session.events import (
   SessionEventSink,
 )
 from operator_core_olden.toolsets.files import FileToolset
-from operator_db.objects.history import HistoryService
 from operator_db.objects.session import (
   SessionRequestSchema,
   SessionService,
@@ -60,9 +60,9 @@ if TYPE_CHECKING:
     HistoryMessageResponseSchema,
   )
   from operator_db.objects.session.schema import SessionResponseSchema
+  from operator_db.utils.services import DbSession
   from pydantic import DirectoryPath
 
-  from operator_db.utils.services import DbSession
   from operator_shared.settings import OperatorSettings
 
 

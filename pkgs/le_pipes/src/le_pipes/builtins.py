@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, TypeIs, overload
+from typing import TYPE_CHECKING, TypeIs
 
 from .base import Pipe
 

@@ -89,7 +89,7 @@ class UserMessageSent(_SessionEv):
 
 
 type SessionEventType = (
-  AgentTurnStart  ##
+  AgentTurnStart
   | AgentPartStart
   | AgentPartEnd
   | AgentTurnEnd

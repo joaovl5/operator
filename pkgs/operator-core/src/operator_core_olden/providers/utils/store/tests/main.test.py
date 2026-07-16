@@ -28,7 +28,7 @@ class CredentialModel(BaseModel):
 
 def make_credentials(
   *, access_token: str = "access-token"
-) -> CredentialModel:  # noqa: S107
+) -> CredentialModel:
   """Build representative credentials for the generic JSON store tests."""
   return CredentialModel(
     access_token=access_token,

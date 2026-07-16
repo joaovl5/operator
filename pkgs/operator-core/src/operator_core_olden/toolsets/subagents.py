@@ -110,6 +110,6 @@ class SubagentToolset(BaseToolset):
     while True:
       # FIXME: EVERYTHING IS ATROCIOUS AND NEEDS TO BE DESTROYED
       msgs: list[HistoryMessageResponseSchema] = []
-      reqs = await ag.run(messages=msgs)
+      await ag.run(messages=msgs)
 
     return SpawnSubagentSuccess()

@@ -271,7 +271,7 @@ class ContextEvent:
       }
 
   type Type = (
-    EpochStart  ##
+    EpochStart
     | ChatStart
     | Compression
     | Resuming

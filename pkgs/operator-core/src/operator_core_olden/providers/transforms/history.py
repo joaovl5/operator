@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING
 
+from operator_db.constants import HistoryMessageRole
 from operator_db.objects.history.schema import (
   HistoryMessageRequestSchema,
   HistoryMessageResponseSchema,
@@ -13,7 +14,6 @@ from pydantic import TypeAdapter, ValidationError
 from operator_core_olden.providers.transforms.errors import (
   ProviderTransformError,
 )
-from operator_db.constants import HistoryMessageRole
 from operator_shared.providers.transforms import (
   JsonObject,
   JsonValue,

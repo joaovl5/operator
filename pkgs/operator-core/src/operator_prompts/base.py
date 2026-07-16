@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from enum import StrEnum
 from textwrap import dedent
-from typing import Final, Protocol, override
+from typing import Final, override
 
 from attrs import Factory, define
 

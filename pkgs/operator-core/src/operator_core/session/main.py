@@ -228,7 +228,7 @@ class SessionAgentManager:
 
   @property
   def _id(self) -> str:
-    """Gets session-wide `agent_id`."""
+    """Session-wide `agent_id`."""
     return self.db_obj.agent_id
 
   async def _do_turn_locked(self) -> None:
@@ -349,6 +349,7 @@ class SessionManager:
       loop_task = create_task(mgr.do_loop())
       self._agent_loop_tasks[agent_id] = loop_task
     pointer = await loop_task
+
     del self._agent_loop_tasks[agent_id]
     return pointer
 
@@ -402,9 +403,9 @@ class SessionManager:
 
     This does not make the loop start/restart afterwards.
     """
-    # This must also handle cases where no events were made after parent_pointer
-    # and thus must correctly detect, in that case, that `last_ev_pointer` *is* the
-    # parent_pointer.
+    # This must also handle cases where no events were made after
+    # parent_pointer and thus must correctly detect, in that case,
+    # that `last_ev_pointer` *is* the  parent_pointer.
     last_ev_pointer = await self.trigger_stop(
       agent_id=agent_id,
       stop_method=stop_method,
