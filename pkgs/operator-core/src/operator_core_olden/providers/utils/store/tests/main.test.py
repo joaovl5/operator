@@ -29,7 +29,9 @@ class CredentialModel(BaseModel):
 def make_credentials(
   *, access_token: str = "access-token"
 ) -> CredentialModel:
-  """Build representative credentials for the generic JSON store tests."""
+  """Build representative credentials for the generic JSON store
+  tests.
+  """
   return CredentialModel(
     access_token=access_token,
     refresh_token="refresh-token",  # noqa: S106
@@ -42,7 +44,9 @@ def make_credentials(
 def test_store_constructor_accepts_explicit_paths(
   tmp_path: Path,
 ) -> None:
-  """Explicit store paths are preserved and derive matching lock files."""
+  """Explicit store paths are preserved and derive matching lock
+  files.
+  """
   path = tmp_path / "custom" / "credentials.json"
 
   store = JsonCredentialStore(model_type=CredentialModel, path=path)
@@ -85,7 +89,9 @@ def test_store_public_apis_save_load_update_and_delete(
 def test_store_save_writes_private_credentials_file(
   tmp_path: Path,
 ) -> None:
-  """Saving credentials persists them with private file permissions."""
+  """Saving credentials persists them with private file
+  permissions.
+  """
   store = JsonCredentialStore(
     model_type=CredentialModel, path=tmp_path / "credentials.json"
   )
@@ -108,7 +114,9 @@ def test_store_save_writes_private_credentials_file(
 def test_store_public_apis_surface_corrupt_payloads(
   tmp_path: Path, contents: str
 ) -> None:
-  """Corrupt on-disk payloads raise the dedicated public store error."""
+  """Corrupt on-disk payloads raise the dedicated public store
+  error.
+  """
   path = tmp_path / "credentials.json"
   _ = path.write_text(contents, encoding="utf-8")
   store = JsonCredentialStore(model_type=CredentialModel, path=path)
@@ -135,7 +143,9 @@ def test_store_save_overwrites_corrupt_payloads(
 def test_store_delete_removes_corrupt_payloads(
   tmp_path: Path,
 ) -> None:
-  """Deleting credentials removes unreadable payloads without surfacing corruption."""
+  """Deleting credentials removes unreadable payloads without
+  surfacing corruption.
+  """
   path = tmp_path / "credentials.json"
   _ = path.write_text("{bad-json", encoding="utf-8")
   store = JsonCredentialStore(model_type=CredentialModel, path=path)
@@ -149,7 +159,9 @@ def test_store_delete_removes_corrupt_payloads(
 def test_store_update_surfaces_existing_corruption(
   tmp_path: Path,
 ) -> None:
-  """Updates fail fast when the existing persisted state is corrupt."""
+  """Updates fail fast when the existing persisted state is
+  corrupt.
+  """
   path = tmp_path / "credentials.json"
   _ = path.write_text("{bad-json", encoding="utf-8")
   store = JsonCredentialStore(model_type=CredentialModel, path=path)
@@ -161,7 +173,9 @@ def test_store_update_surfaces_existing_corruption(
 def test_store_save_recovers_from_stale_lock_file(
   tmp_path: Path,
 ) -> None:
-  """Saving credentials recovers from stale lock files through public effects."""
+  """Saving credentials recovers from stale lock files through
+  public effects.
+  """
   store = JsonCredentialStore(
     model_type=CredentialModel, path=tmp_path / "credentials.json"
   )

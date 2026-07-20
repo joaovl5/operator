@@ -75,7 +75,8 @@ type _TurnEvent = AgentTurnStarted | AgentTurnFinished
 def main() -> None:
   """Run the interactive chat CLI using `config.toml`."""
   rprint(
-    "[bold cyan]operator-chat[/bold cyan] [dim]loading config.toml[/dim]"
+    "[bold cyan]operator-chat[/bold cyan] "
+    "[dim]loading config.toml[/dim]"
   )
   config = get_config()
   try:
@@ -85,20 +86,24 @@ def main() -> None:
 
 
 async def run_interactive_chat(*, config: OperatorConfig) -> None:
-  """Create a persisted session and loop user prompts into agent responses."""
+  """Create a persisted session and loop user prompts into agent
+  responses."""
   rprint(
     "[bold cyan]operator-chat[/bold cyan] "
-    f"[dim]provider={config.model.provider} model={config.model.name}[/dim]",
+    f"[dim]provider={config.model.provider} "
+    f"model={config.model.name}[/dim]",
   )
   rprint(
-    f"[blue]db[/blue] ensuring readiness for [dim]{config.database.url}[/dim]"
+    f"[blue]db[/blue] ensuring readiness for "
+    f"[dim]{config.database.url}[/dim]"
   )
   engine = get_db_engine(config=config.database)
   sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
   try:
     event_sink = _RichSessionEventSink()
     rprint(
-      "[blue]session[/blue] creating persisted session and orchestrator agent"
+      "[blue]session[/blue] creating persisted session and "
+      "orchestrator agent"
     )
     session = await Session.create(
       config=config,
@@ -106,7 +111,8 @@ async def run_interactive_chat(*, config: OperatorConfig) -> None:
       event_sink=event_sink,
     )
     rprint(
-      "[green]ready[/green] Type [bold]:q[/bold], [bold]:quit[/bold], "
+      "[green]ready[/green] Type [bold]:q[/bold], "
+      "[bold]:quit[/bold], "
       "quit, or exit to leave.",
     )
     rprint(f"[dim]session_id={session.session_id}[/dim]")
@@ -132,7 +138,8 @@ async def run_interactive_chat(*, config: OperatorConfig) -> None:
         rprint(f"[bold green]agent>[/bold green] {agent_text}")
       elif not agent_text and not streamed_text:
         rprint(
-          "[bold green]agent>[/bold green] [dim]<no text response>[/dim]"
+          "[bold green]agent>[/bold green] "
+          "[dim]<no text response>[/dim]"
         )
   finally:
     rprint("[blue]db[/blue] disposing engine")
@@ -142,9 +149,10 @@ async def run_interactive_chat(*, config: OperatorConfig) -> None:
 async def _read_user_input(prompt: str) -> str:
   """Read one stdin line without creating a blocking executor thread.
 
-  ``asyncio.to_thread(input, ...)`` leaves ``input`` blocked after cancellation, and
-  ``asyncio.run`` waits for that default-executor thread during shutdown. Using the
-  event loop's stdin reader lets a single Ctrl-C cancel and exit promptly.
+  ``asyncio.to_thread(input, ...)`` leaves ``input`` blocked after
+  cancellation, and ``asyncio.run`` waits for that default-executor
+  thread during shutdown. Using the event loop's stdin reader lets a
+  single Ctrl-C cancel and exit promptly.
   """
   _ = sys.stdout.write(prompt)
   _ = sys.stdout.flush()
@@ -202,7 +210,8 @@ class _RichSessionEventSink:
     self._thinking_announced = False
 
   def consume_streamed_text(self) -> bool:
-    """Return whether text streamed during this turn and reset final-print state."""
+    """Return whether text streamed during this turn and reset
+    final-print state."""
     self._close_stream_line()
     streamed_text = self._streamed_text
     self._streamed_text = False
@@ -242,7 +251,8 @@ class _RichSessionEventSink:
         self._close_stream_line()
         rprint(
           "[green]turn[/green] finished "
-          f"persisted={persisted_message_count} elapsed={self._elapsed()}s",
+          f"persisted={persisted_message_count} "
+          f"elapsed={self._elapsed()}s",
         )
 
   def _handle_history_event(self, *, event: _HistoryEvent) -> None:
@@ -252,13 +262,15 @@ class _RichSessionEventSink:
       ):
         rprint(
           "[blue]history[/blue] "
-          f"loaded {message_count} message(s) [dim]history_id={history_id}[/dim]",
+          f"loaded {message_count} message(s) "
+          f"[dim]history_id={history_id}[/dim]",
         )
       case SystemPromptSeeded():
         rprint("[blue]history[/blue] seeded assembled system prompt")
       case UserMessagePersisted(author_id=author_id):
         rprint(
-          f"[blue]history[/blue] persisted user prompt author=[bold]{author_id}[/bold]"
+          f"[blue]history[/blue] persisted user prompt "
+          f"author=[bold]{author_id}[/bold]"
         )
       case HistoryMessagePersisted(
         role=role, message_index=message_index
@@ -274,7 +286,8 @@ class _RichSessionEventSink:
       case AgentRunStarted(replay_message_count=replay_message_count):
         rprint(
           "[bold yellow]model[/bold yellow] request started "
-          f"[dim]replay_messages={replay_message_count}; waiting for provider...[/dim]",
+          f"[dim]replay_messages={replay_message_count}; "
+          "waiting for provider...[/dim]",
         )
       case AgentRunFinished(
         history_request_count=history_request_count
@@ -370,7 +383,8 @@ class _RichSessionEventSink:
     suffix = f" args={args}" if args else ""
     rprint(
       "[magenta]tool[/magenta] calling "
-      f"[bold]{tool_name}[/bold] [dim]id={tool_call_id}[/dim]{suffix}",
+      f"[bold]{tool_name}[/bold] "
+      f"[dim]id={tool_call_id}[/dim]{suffix}",
     )
 
   def _print_tool_finished(

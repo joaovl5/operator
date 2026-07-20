@@ -18,7 +18,8 @@ def deep_merge(
   Args:
       x: Left side of merge
       y: Right side of merge.
-      erase_lists: If set, will erase list conflicts instead of appending.
+      erase_lists: If set, will erase list conflicts instead of
+          appending.
   """
   out = {**x}
 

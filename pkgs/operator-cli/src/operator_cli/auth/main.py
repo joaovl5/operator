@@ -35,7 +35,9 @@ def run_openai_login(
   settings: OperatorSettings | None = None,
   dependencies: LoginFlowDependencies | None = None,
 ) -> int:
-  """Run the OpenAI CLI login flow using core OAuth helpers and store APIs."""
+  """Run the OpenAI CLI login flow using core OAuth helpers
+  and store APIs.
+  """
   auth_store = OpenAIOAuthStore() if store is None else store
   operator_settings = (
     load_operator_settings() if settings is None else settings
@@ -151,7 +153,8 @@ def run_openai_status(
     output("Expires: unknown")
   else:
     output(
-      f"Expires: {_format_expiry(expires_at_ms=credentials.expires_at_ms)}"
+      "Expires: "
+      f"{_format_expiry(expires_at_ms=credentials.expires_at_ms)}"
     )
     output(f"Expired: {'yes' if credentials.is_expired() else 'no'}")
   return 0

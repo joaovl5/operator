@@ -10,4 +10,6 @@ class JsonCredentialStoreCorruptionError(JsonCredentialStoreError):
 
 
 class JsonCredentialStoreTransactionError(JsonCredentialStoreError):
-  """Raised when a transaction operation runs without the store lock."""
+  """Raised when a transaction operation runs without the store
+  lock.
+  """

@@ -47,7 +47,8 @@ def _refresh_access_token_default(
 
 @define(kw_only=True)
 class OpenAIOAuthManager:
-  """Loads, refreshes, and persists OAuth credentials for ChatGPT traffic."""
+  """Loads, refreshes, and persists OAuth credentials
+  for ChatGPT traffic."""
 
   store: OpenAIOAuthStore
   refresh_access_token: RefreshAccessToken = (
@@ -57,11 +58,13 @@ class OpenAIOAuthManager:
 
   @property
   def current_credentials(self) -> OpenAIOAuthCredentials | None:
-    """Return the latest credentials currently stored on disk, if any."""
+    """Return the latest credentials currently stored on disk,
+    if any."""
     return self.store.load()
 
   async def get_access_token(self) -> str:
-    """Return a usable access token, refreshing and persisting if needed."""
+    """Return a usable access token, refreshing and persisting if
+    needed."""
     credentials = self._require_credentials()
     if not credentials.expires_within(
       now_ms=epoch_ms(), buffer_ms=self.refresh_buffer_ms

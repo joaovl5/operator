@@ -23,8 +23,10 @@ type _Prompt = Annotated[
   str | _TakesPath | _TakesRegisteredPrompt,
   Field(
     description=(
-      "String, or path to be read as string, or a registered prompt key. "
-      "For a registered prompt key, will error if not found. Checking all"
+      "String, or path to be read as string, or a registered "
+      "prompt key. "
+      "For a registered prompt key, will error if not found. "
+      "Checking all"
       " registered prompts and their keys is possible via CLI."
       # TODO: LATER SHOW REGISTRY LISTINGS
     ),
@@ -52,8 +54,9 @@ class _AgentSettingsBase(SettingsBase):
   prompt_core: _Prompt | None = None
   """If set, will override core prompt for agent.
 
-    This overrides all previous prompts that are less-specific and thus isn't
-    recommended for most cases - for simply appending to the prompt, use
+    This overrides all previous prompts that are less-specific and
+    thus isn't recommended for most cases - for simply appending to
+    the prompt, use
     `prompt_append`.
     """
 
@@ -63,9 +66,10 @@ class _AgentSettingsBase(SettingsBase):
   prompt_append_extra: _Prompt | None = None
   """*Extra* value to append to the agent's prompt.
 
-    When overriding previous settings, this won't replace the text from the base value
-    of that settings' `prompt_append` value, meaning this can be used for appending
-    extra contents inside an archetype override for, say, the orchestrator.
+    When overriding previous settings, this won't replace the text
+    from the base value of that settings' `prompt_append` value,
+    meaning this can be used for appending extra contents inside an
+    archetype override for, say, the orchestrator.
     """
 
   max_turns: PositiveInt | None = 90
@@ -78,7 +82,8 @@ class _AgentSettingsBase(SettingsBase):
   """Placeholder value for when permissions are implemented."""
 
   use_preset_model: str | None = None
-  """If set, will use that specific model preset key from `models.entries`."""
+  """If set, will use that specific model preset key from
+  `models.entries`."""
 
 
 class _AgentSettingsCommon(_AgentSettingsBase): ...
@@ -136,19 +141,22 @@ class AgentsSettings(SettingsBase):
   base_archetypes: Entries[_AgentSettingsArchetype] = Field(
     default_factory=_bake_default_archetypes
   )
-  """Default agent archetypes - don't edit this unless you know what you're doing."""
+  """Default agent archetypes - don't edit this unless you know what
+  you're doing."""
 
   extra_archetypes: Fac[Entries[_AgentSettingsArchetype]]
   """Custom archetypes to be defined.
 
-    Keys here conflicting with base archetypes will be handled depending on the value of
+    Keys here conflicting with base archetypes will be handled
+    depending on the value of
     `archetype_override_behavior`.
     """
 
   archetype_override: _ArchetypeOverrideBehavior = (
     _ArchetypeOverrideBehavior.ERROR
   )
-  """Controls how overriding archetypes with the `extra_archetypes` field works."""
+  """Controls how overriding archetypes with the `extra_archetypes`
+  field works."""
 
   @cached_property
   def archetypes(self) -> Entries[_AgentSettingsArchetype]:
@@ -245,7 +253,8 @@ class AgentsSettings(SettingsBase):
   ) -> _AgentSettingsBase:
     """Computes settings for agent.
 
-    Don't use this for computing prompts - instead use the dedicated function for
+    Don't use this for computing prompts - instead use the dedicated
+    function for
     that: `compute_effective_prompt`.
 
     """

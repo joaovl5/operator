@@ -37,7 +37,8 @@ def decode_jwt_payload(token: str) -> Mapping[str, object] | None:
 def extract_account_id_from_id_token(
   id_token: str | None,
 ) -> str | None:
-  """Extract the preferred ChatGPT account identifier from an ID token."""
+  """Extract the preferred ChatGPT account identifier
+  from an ID token."""
   if not id_token:
     return None
 

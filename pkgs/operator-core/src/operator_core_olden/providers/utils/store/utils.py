@@ -46,7 +46,9 @@ def atomic_write_json(*, path: Path, payload: object) -> None:
 
 
 def build_lock_contents() -> str:
-  """Build lock-file contents that capture acquisition time and token."""
+  """Build lock-file contents that capture acquisition time and
+  token.
+  """
   return f"{epoch_ms()} {secrets.token_hex(16)}"
 
 

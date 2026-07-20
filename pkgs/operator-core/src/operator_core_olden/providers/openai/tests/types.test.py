@@ -16,7 +16,8 @@ from operator_core_olden.providers.openai.types import (
 def test_openai_model_config_validates_settings_as_base_model() -> (
   None
 ):
-  """OpenAI settings validate through a serializable BaseModel payload."""
+  """OpenAI settings validate through a serializable BaseModel
+  payload."""
   config = DirectOpenAIModelConfig.model_validate(
     {
       "name": "gpt-4.1",
@@ -61,9 +62,8 @@ def test_openai_oauth_model_settings_are_strictly_oauth_safe() -> (
     )
 
 
-def test_openai_oauth_model_config_rejects_unsupported_model_names() -> (
-  None
-):
+def test_openai_oauth_model_config_rejects_unsupported_model_names(
+) -> None:
   """OAuth model configs only admit the validated codex model name."""
   config = OpenAIOAuthModelConfig.model_validate(
     {"name": "gpt-5.3-codex"}
@@ -76,10 +76,10 @@ def test_openai_oauth_model_config_rejects_unsupported_model_names() -> (
     _ = OpenAIOAuthModelConfig.model_validate({"name": "gpt-4.1"})
 
 
-def test_provider_model_config_accepts_openai_settings_subclasses() -> (
-  None
-):
-  """Provider-agnostic configs still carry OpenAI settings instances."""
+def test_provider_model_config_accepts_openai_settings_subclasses(
+) -> None:
+  """Provider-agnostic configs still carry OpenAI settings
+  instances."""
   config = ModelConfig(
     name="gpt-4.1", settings=OpenAIModelSettings(openai_store=True)
   )

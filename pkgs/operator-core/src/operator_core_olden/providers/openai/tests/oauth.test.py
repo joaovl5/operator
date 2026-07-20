@@ -68,7 +68,8 @@ def test_store_constructor_derives_default_and_base_dir_paths(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
-  """Store construction derives the expected credential and lock paths."""
+  """Store construction derives the expected credential and lock
+  paths."""
   monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
 
   default_store = OpenAIOAuthStore()
@@ -94,7 +95,8 @@ def test_store_constructor_derives_default_and_base_dir_paths(
 def test_store_public_apis_surface_openai_corruption_error(
   tmp_path: Path,
 ) -> None:
-  """Malformed on-disk payloads raise the OpenAI-specific corruption error."""
+  """Malformed on-disk payloads raise the OpenAI-specific
+  corruption error."""
   path = tmp_path / "openai.json"
   _ = path.write_text("{not-json", encoding="utf-8")
   store = OpenAIOAuthStore(path=path)
@@ -138,7 +140,8 @@ def test_authorize_request_builds_expected_query_parameters() -> None:
 
 
 def test_extract_account_id_prefers_chatgpt_claim() -> None:
-  """Account extraction prefers the ChatGPT-specific claim when both exist."""
+  """Account extraction prefers the ChatGPT-specific claim when
+  both exist."""
   token = make_jwt(
     {"account_id": "acct-fallback", "chatgpt_account_id": "acct-123"}
   )
@@ -173,7 +176,8 @@ def test_oauth_request_models_validate_required_fields() -> None:
 
 
 def test_credentials_helpers_report_expiration_boundaries() -> None:
-  """Credential helpers report expiry and buffer boundaries consistently."""
+  """Credential helpers report expiry and buffer boundaries
+  consistently."""
   credentials = OpenAIOAuthCredentials(
     access_token=ACCESS_TOKEN,
     refresh_token=REFRESH_TOKEN,
@@ -193,7 +197,8 @@ def test_credentials_helpers_report_expiration_boundaries() -> None:
 def test_openai_token_response_uses_shared_account_id_helper(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Token credential conversion delegates account extraction to the shared JWT helper."""
+  """Token credential conversion delegates account extraction to
+  the shared JWT helper."""
   seen_tokens: list[str | None] = []
 
   def fake_extract_account_id(id_token: str | None) -> str | None:
@@ -292,7 +297,8 @@ def test_token_requests_use_httpx_form_posts(
   operation: Callable[[httpx.Client], OpenAITokenResponse],
   expected_body: dict[str, list[str]],
 ) -> None:
-  """Token operations send form-encoded POST requests through httpx."""
+  """Token operations send form-encoded POST requests through
+  httpx."""
   seen_requests: list[httpx.Request] = []
 
   def handler(request: httpx.Request) -> httpx.Response:
@@ -327,9 +333,9 @@ def test_token_requests_use_httpx_form_posts(
   )
 
 
-def test_token_response_to_credentials_preserves_previous_refresh_token() -> (
-  None
-):
+def \
+test_token_response_to_credentials_preserves_previous_refresh_token(
+) -> None:
   """Token responses keep the existing refresh token when omitted."""
   previous = OpenAIOAuthCredentials(
     access_token="old-access-token",  # noqa: S106
@@ -349,10 +355,11 @@ def test_token_response_to_credentials_preserves_previous_refresh_token() -> (
   assert credentials.expires_at_ms == EXPECTED_EXPIRES_AT_MS
 
 
-def test_token_response_to_credentials_preserves_previous_account_id_on_refresh_without_id_token() -> (
-  None
-):
-  """Refresh responses preserve account_id when no new id_token is returned."""
+def \
+test_token_response_to_credentials_preserves_previous_account_id_on_refresh_without_id_token(
+) -> None:
+  """Refresh responses preserve account_id when no new id_token is
+  returned."""
   previous = OpenAIOAuthCredentials(
     access_token="old-access-token",  # noqa: S106
     refresh_token=REFRESH_TOKEN,
@@ -384,7 +391,8 @@ def test_token_response_to_credentials_preserves_previous_account_id_on_refresh_
 def test_token_operations_map_auth_failures_to_relogin_errors(
   operation: Callable[[httpx.Client], OpenAITokenResponse],
 ) -> None:
-  """Focused auth failures surface as re-login errors for both token operations."""
+  """Focused auth failures surface as re-login errors for both
+  token operations."""
 
   def handler(request: httpx.Request) -> httpx.Response:
     return httpx.Response(
@@ -422,11 +430,13 @@ def test_token_operations_map_auth_failures_to_relogin_errors(
     ),
   ],
 )
-def test_exchange_authorization_code_surfaces_protocol_and_auth_failures(
+def \
+test_exchange_authorization_code_surfaces_protocol_and_auth_failures(
   response: httpx.Response,
   match: str,
 ) -> None:
-  """Code exchange keeps protocol failures distinct from re-login failures."""
+  """Code exchange keeps protocol failures distinct from re-login
+  failures."""
 
   def handler(request: httpx.Request) -> httpx.Response:
     return httpx.Response(

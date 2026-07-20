@@ -44,7 +44,8 @@ class OpenAIOAuthModelConfig(ModelConfig[OpenAIOAuthModelSettings]):
   @field_validator("name")
   @classmethod
   def validate_name(cls, value: str) -> str:
-    """Validate that the OAuth-backed model name stays on the supported codex model."""
+    """Validate that the OAuth-backed model name stays on the
+    supported codex model."""
     if value != "gpt-5.3-codex":
       message = f"Unsupported model name: {value}"
       raise ValueError(message)

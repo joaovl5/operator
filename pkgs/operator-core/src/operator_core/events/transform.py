@@ -20,7 +20,8 @@ async def events_to_msgs(
 ) -> list[ModelMessage]:
   """Turn events into Pydantic AI `ModelMessage` type.
 
-  IMPORTANT: This assumes `events` were already loaded and populated via ORM,
+  IMPORTANT: This assumes `events` were already loaded and
+  populated via ORM,
   typically can be done via `walk_up_to`.
   """
   out: list[ModelMessage] = []
@@ -48,8 +49,10 @@ def _gather_msg_group(
 ) -> tuple[list[_Ev.Message], int]:
   """Collect all messages within the same group and advance `i`.
 
-  Returns a tuple of the collected messages, as well as the next unread index.
-  This expects `i` is within the position of the first message already.
+  Returns a tuple of the collected messages, as well as the next
+  unread index.
+  This expects `i` is within the position of the first message
+  already.
   """
   group: list[_Ev.Message] = []
 

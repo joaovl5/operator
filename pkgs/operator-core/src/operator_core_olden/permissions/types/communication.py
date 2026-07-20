@@ -21,4 +21,5 @@ class Communication:
 
 
 type CommunicationState = Communication.Deny | Communication.Allow
-"""Specifies what should happen when an agent attempts to communicate with another."""
+"""Specifies what should happen when an agent attempts to
+communicate with another."""

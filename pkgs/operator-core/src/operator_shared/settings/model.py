@@ -115,7 +115,10 @@ class ModelsSettings(SettingsBase):
   def default_entry_force(self) -> _ModelSettings:
     """Same as `.default_entry` but raises an error if is `None`."""
     if (x := self.default_entry) is None:
-      msg = "No default model entry was found, cannot proceed without one."
+      msg = (
+        "No default model entry was found, cannot proceed "
+        "without one."
+      )
       raise ValueError(msg)
     return x
 

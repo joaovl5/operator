@@ -6,9 +6,10 @@ if TYPE_CHECKING:
   from collections.abc import Callable, Iterable, Iterator, Sequence
 
 
-# `w` values are required for 'type witnesses' because python type checkers are all
-# stupid and we as a society cannot collectively do better than this for it and i am not
-# going to rewrite all of this in a better typed language just to prove a point just yet
+# `w` values are required for 'type witnesses' because python type
+# checkers are all stupid and we as a society cannot collectively do
+# better than this for it and i am not going to rewrite all of this in
+# a better typed language just to prove a point just yet
 
 
 @Pipe
@@ -32,7 +33,8 @@ def take[T](
 def where[T, H](
   iterable: Iterable[T],
   w: type[H],
-  # yeah its gonna be just `TypeIs` for now because overloading didnt work and i do
+  # yeah its gonna be just `TypeIs` for now because overloading
+  # didnt work and i do
   # not care enough to work on this any further
   predicate: Callable[[T], TypeIs[H]],
 ) -> Iterator[H]:

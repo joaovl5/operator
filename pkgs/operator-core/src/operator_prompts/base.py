@@ -8,14 +8,16 @@ from attrs import Factory, define
 
 
 class PromptTraitType(StrEnum):
-  """Defines which layer prompt should go, or how it should be used."""
+  """Defines which layer prompt should go, or how it should be
+  used."""
 
   ROOT_PROMPT = "root-prompt"
   """Core harness prompt.
 
     It should:
         - situate agent in harness
-        - display _core_ capabilities (least prone to overrides in session)
+        - display _core_ capabilities (least prone to overrides in
+          session)
           - file operations
           - question tooling
           - (maybe) cross-agent comms
@@ -163,7 +165,10 @@ class PromptRegistry:
 
   def get_prompt_key(self, prompt: BasePrompt) -> str:
     """Gets unique prompt key."""
-    return f"{self.trait_registry.get_trait_key(prompt.trait)}/{prompt.identifier}"
+    return (
+      f"{self.trait_registry.get_trait_key(prompt.trait)}/"
+      f"{prompt.identifier}"
+    )
 
   def register(self, p_type: type[BasePrompt]) -> str:
     """Register prompt-like type."""

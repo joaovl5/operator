@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 @define(frozen=True, kw_only=True)
 class CallbackPayload:
-  """Authorization-code callback values returned from the browser flow."""
+  "Authorization-code callback values returned from the browser flow."
 
   code: str
   state: str
@@ -32,7 +32,7 @@ class CallbackListener(Protocol):
 
 
 class CallbackListenerFactory(Protocol):
-  """Factory for creating callback listeners bound to local settings."""
+  "Factory for creating callback listeners bound to local settings."
 
   def __call__(
     self,
@@ -42,7 +42,9 @@ class CallbackListenerFactory(Protocol):
     path: str,
     pending_state: str,
   ) -> CallbackListener:
-    """Create a listener bound to the configured callback host and port."""
+    """Create a listener bound to the configured callback host
+    and port.
+    """
     ...
 
 

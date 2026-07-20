@@ -69,9 +69,10 @@ type _JsonValue = (
 class MessageGroup(Base):
   """Provider-facing Pydantic AI message split across context events.
 
-  This model is required because we store things such as ThinkingPart, FilePath, etc
-  as individual events, whereas a `ModelMessage` may be comprised of one or more of
-  these parts. Failing to recreate the `ModelMessage` in this way will cause caches to
+  This model is required because we store things such as ThinkingPart,
+  FilePath, etc as individual events, whereas a `ModelMessage` may be
+  comprised of one or more of these parts. Failing to recreate the
+  `ModelMessage` in this way will cause caches to
   break and, in some providers, fail to send requests completely.
   """
 
@@ -103,8 +104,10 @@ def get_poly_id(t: type[ContextEvent.Event]) -> str:
 
 class ContextEvent:
   # IMPORTANT!
-  # For the polymorphism to work, we set `nullable` on all subclass fields.
-  # We don't need to set equivalent `| None` in annotations, since SQLAlchemy will
+  # For the polymorphism to work, we set `nullable` on all subclass
+  # fields.
+  # We don't need to set equivalent `| None` in annotations, since
+  # SQLAlchemy will
   # handle the rest.
   class Event(Base):
     """Polymorphic single-table relation for events."""
@@ -156,7 +159,8 @@ class ContextEvent:
 
   @final
   class Compression(Event):
-    """Represents a base form of a compressed representation of past epochs.
+    """Represents a base form of a compressed representation of past
+    epochs.
 
     This should be at the start of an epoch (aside from the first).
     """
@@ -296,7 +300,8 @@ _context_events_table.append_constraint(
 _context_events_table.append_constraint(
   CheckConstraint(
     "((message_group_id IS NULL AND message_group_index IS NULL) OR "
-    "(message_group_id IS NOT NULL AND message_group_index IS NOT NULL))",
+    "(message_group_id IS NOT NULL "
+    "AND message_group_index IS NOT NULL))",
     name="ck_context_events_message_group_membership",
   )
 )
@@ -346,7 +351,8 @@ class ContextEventSvc(Svc[CtxEvent]):
 
     This will modify the `events` list in-place.
 
-    The last element will be the inner-most, and the first will be the ancestor.
+    The last element will be the inner-most, and the first will be the
+    ancestor.
     If the sequence is empty, will raise an error.
 
     This has two important nuances:
@@ -368,7 +374,8 @@ class ContextEventSvc(Svc[CtxEvent]):
   async def walk_down_unforked(
     self, anchor_event_id: IDType
   ) -> CtxEvent | None:
-    """Walk down, from anchor event, until the last event is found and returned.
+    """Walk down, from anchor event, until the last event is found and
+    returned.
 
     If forks are found while walking down, returns `None`.
     """
@@ -454,12 +461,15 @@ class ContextEventSvc(Svc[CtxEvent]):
     stop_at: type[EventT] = ContextEvent.EpochStart,
     return_only_start: bool = False,
   ) -> list[CtxEvent] | EventT | None:
-    """Walks up ancestry of event until reaching the first `stop_at` event type.
+    """Walks up ancestry of event until reaching the first `stop_at`
+    event type.
 
-    By default, `stop_at` is `EpochStart`, meaning it will gather all events of the
+    By default, `stop_at` is `EpochStart`, meaning it will gather all
+    events of the
     current epoch.
 
-    If `return_only_start` is set, will return a list containing only the top of the
+    If `return_only_start` is set, will return a list containing only
+    the top of the
     list, thus a event of type `stop_at`.
     """
     stop_poly_id = get_poly_id(stop_at)

@@ -52,7 +52,8 @@ type _AgentLoopTaskMap = dict[str, Task[EventPointer]]
 class SessionAgentManager:
   """Proxy for db-side session-agent - stateful.
 
-  This shouldn't hold state for long, and it should keep itself in-sync with database.
+  This shouldn't hold state for long, and it should keep itself
+  in-sync with database.
   """
 
   settings: OperatorSettings
@@ -114,9 +115,11 @@ class SessionAgentManager:
     *,
     force_refresh: bool = False,
   ) -> Model:
-    """Returns cached Pydantic AI model, or fetches history events to create one.
+    """Returns cached Pydantic AI model, or fetches history events to
+    create one.
 
-    If `force_refresh` is set, will fetch history regardless of caching or not.
+    If `force_refresh` is set, will fetch history regardless of
+    caching or not.
     """
     if self._model and not force_refresh:
       return self._model
@@ -143,7 +146,8 @@ class SessionAgentManager:
     )
 
   async def _get_msg_history(self) -> list[ModelMessage]:
-    """Turn the current epoch into provider-safe Pydantic AI messages."""
+    """Turn the current epoch into provider-safe Pydantic AI
+    messages."""
     pointer = await self.get_pointer()
     events = await self.svc.event_svc.walk_up_to(
       event_id=pointer.event_id
@@ -191,7 +195,8 @@ class SessionAgentManager:
     self.db_obj = db_obj
 
   async def do_loop(self) -> EventPointer:
-    """Perform this agent's loop until a termination signal is triggered."""
+    """Perform this agent's loop until a termination signal is
+    triggered."""
     self.loop_end_ev.clear()
     async with self.loop_lock:
       # For now, a "loop" is just a single turn.
@@ -364,7 +369,8 @@ class SessionManager:
     Args:
         agent_id: Agent to be stopped.
         stop_method: Method to handle stopping process.
-        anchor_pointer: Base pointer for performing last event search, will be used
+        anchor_pointer: Base pointer for performing last event search,
+                        will be used
                         for a downward search.
 
     Returns:
@@ -386,7 +392,8 @@ class SessionManager:
     )
     if not out:
       msg = (
-        "While attempting to find last agent event, no event could be found. "
+        "While attempting to find last agent event, no event could "
+        "be found. "
         "Has a fork somehow occured along the way?"
       )
       raise ValueError(msg)

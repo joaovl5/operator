@@ -21,7 +21,8 @@ TOKEN_RESPONSE_MISSING_REFRESH_MESSAGE = (
 
 
 class OpenAIOAuthCredentials(BaseModel):
-  """Persisted OpenAI OAuth credentials used for ChatGPT-backed traffic."""
+  """Persisted OpenAI OAuth credentials used for
+  ChatGPT-backed traffic."""
 
   model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
@@ -34,14 +35,16 @@ class OpenAIOAuthCredentials(BaseModel):
   token_type: str = "Bearer"  # noqa: S105
 
   def is_expired(self, *, now_ms: int | None = None) -> bool:
-    """Report whether the credentials are expired at the given time."""
+    """Report whether the credentials are expired at the
+    given time."""
     current_ms = epoch_ms() if now_ms is None else now_ms
     return self.expires_at_ms and self.expires_at_ms <= current_ms
 
   def expires_within(
     self, *, now_ms: int | None = None, buffer_ms: int = 0
   ) -> bool:
-    """Report whether the credentials expire within the given buffer."""
+    """Report whether the credentials expire within the
+    given buffer."""
     current_ms = epoch_ms() if now_ms is None else now_ms
     return (
       self.expires_at_ms
@@ -50,7 +53,8 @@ class OpenAIOAuthCredentials(BaseModel):
 
 
 class OpenAITokenResponse(BaseModel):
-  """Validated token payload returned by the OpenAI OAuth token endpoint."""
+  """Validated token payload returned by the OpenAI OAuth
+  token endpoint."""
 
   model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
@@ -97,7 +101,8 @@ class OpenAITokenResponse(BaseModel):
 
 
 class AuthorizeRequest(BaseModel):
-  """Typed authorize-request payload for the local OpenAI OAuth flow."""
+  """Typed authorize-request payload for the local OpenAI
+  OAuth flow."""
 
   model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 
@@ -127,7 +132,8 @@ class AuthorizeRequest(BaseModel):
 
 
 class TokenExchangeRequest(BaseModel):
-  """Typed authorization-code exchange payload for the token endpoint."""
+  """Typed authorization-code exchange payload for the
+  token endpoint."""
 
   model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
 

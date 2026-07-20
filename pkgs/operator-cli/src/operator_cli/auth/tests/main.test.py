@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 def test_run_openai_logout_and_status_use_core_store_boundary(
   tmp_path: Path,
 ) -> None:
-  """Logout and status stay thin wrappers over the core store model."""
+  "Logout and status stay thin wrappers over the core store model."
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   output_lines: list[str] = []
   _ = store.save(
@@ -52,10 +52,12 @@ def test_run_openai_logout_and_status_use_core_store_boundary(
   assert ACCESS_TOKEN not in "\n".join(output_lines)
 
 
-def test_run_openai_status_reports_missing_and_present_credentials_without_secrets(
+def test_openai_status_reports_missing_and_present_without_secrets(
   tmp_path: Path,
 ) -> None:
-  """Status output reports login state and metadata while hiding tokens."""
+  """Status output reports login state and metadata while
+  hiding tokens.
+  """
   missing_store = OpenAIOAuthStore(path=tmp_path / "missing.json")
   missing_output: list[str] = []
 
@@ -109,7 +111,7 @@ def test_run_openai_logout_clears_missing_store_without_error(
 def test_run_openai_status_and_logout_handle_corrupt_store(
   tmp_path: Path,
 ) -> None:
-  """Status reports corrupt auth files and logout removes them cleanly."""
+  "Status reports corrupt auth files and logout removes them cleanly."
   path = tmp_path / "corrupt.json"
   _ = path.write_text("{", encoding="utf-8")
   store = OpenAIOAuthStore(path=path)

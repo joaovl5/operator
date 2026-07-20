@@ -8,7 +8,9 @@ class ProviderTransformError(ProviderError):
 
 
 class UnsupportedProviderMessageError(ProviderTransformError):
-  """Provider message shape is not supported by the stable transform."""
+  """Provider message shape is not supported by the stable
+  transform.
+  """
 
 
 __all__ = [

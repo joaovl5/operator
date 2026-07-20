@@ -63,14 +63,16 @@ def build_pkce_verifier_and_challenge() -> tuple[str, str]:
 
 
 def generate_oauth_state() -> str:
-  """Generate the state value used to bind authorize and callback requests."""
+  """Generate the state value used to bind authorize and callback
+  requests."""
   return secrets.token_urlsafe(32)
 
 
 def validate_oauth_state(
   *, received_state: str, pending_state: str
 ) -> str:
-  """Validate the callback state value and return it when it matches."""
+  """Validate the callback state value and return it when it
+  matches."""
   if received_state != pending_state:
     raise OpenAIOAuthStateMismatchError(STATE_MISMATCH_MESSAGE)
   return received_state
@@ -82,7 +84,8 @@ def build_authorize_url(
   code_challenge: str,
   redirect_uri: str = OPENAI_OAUTH_REDIRECT_URI,
 ) -> str:
-  """Build the OpenAI OAuth authorization URL for the local callback flow."""
+  """Build the OpenAI OAuth authorization URL for the local
+  callback flow."""
   return AuthorizeRequest(
     state=state,
     code_challenge=code_challenge,

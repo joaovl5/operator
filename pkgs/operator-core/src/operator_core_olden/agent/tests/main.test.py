@@ -39,7 +39,7 @@ async def _iter_events(
     yield event
 
 
-async def test_forward_streaming_events_accepts_pydantic_ai_call_shape() -> (
+async def test_forward_streaming_events_accepts_pydantic_ai_api() -> (
   None
 ):
   """PydanticAI passes run context and stream events positionally."""
@@ -59,10 +59,11 @@ async def test_forward_streaming_events_accepts_pydantic_ai_call_shape() -> (
   assert forwarded_events == []
 
 
-def test_without_replayed_prefix_strips_first_turn_prompt_replay_by_content() -> (
+def test_without_replayed_prefix_strips_first_prompt_replay() -> (
   None
 ):
-  """Provider-owned prompt metadata does not make persisted prompts new again."""
+  """Provider-owned prompt metadata does not make persisted prompts
+  new again."""
   response = OperatorResponseMessage(
     parts=[OperatorTextPart(content="done")],
     timestamp=RESPONSE_AT,
@@ -103,10 +104,11 @@ def test_without_replayed_prefix_strips_first_turn_prompt_replay_by_content() ->
   assert result == [response]
 
 
-def test_without_replayed_prefix_keeps_requests_that_are_not_replayed_prompts() -> (
+def test_without_replayed_prefix_keeps_non_replayed_requests() -> (
   None
 ):
-  """Only duplicated prompt requests are stripped from new message candidates."""
+  """Only duplicated prompt requests are stripped from new message
+  candidates."""
   previous_messages = [
     OperatorRequestMessage(
       parts=[

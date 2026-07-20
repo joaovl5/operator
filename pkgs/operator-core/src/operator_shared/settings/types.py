@@ -41,7 +41,10 @@ def _fac_schema(
   source_t: object, handler: GetCoreSchemaHandler
 ) -> CoreSchema:
   if not callable(source_t):
-    msg = f"Fac[T] requires a zero-arg callable as a constructor, got {source_t!r}"
+    msg = (
+      "Fac[T] requires a zero-arg callable as a constructor, "
+      f"got {source_t!r}"
+    )
     raise TypeError(msg)
   factory: Callable[[], object] = source_t
   return core_schema.with_default_schema(
@@ -83,5 +86,6 @@ Entries = Annotated[
   dict[Slug, T_entry_like],
   BeforeValidator(_entry_val),
 ]
-"""Makes a key-value dict where its values will have their `key` field set to the
+"""Makes a key-value dict where its values will have their `key`
+field set to the
 dictionary key for convenience."""

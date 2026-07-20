@@ -88,8 +88,9 @@ class OpAgent:
     stream_sink: AgentStreamSink | None = None,
   ) -> list[HistoryMessageRequestSchema]:
     """Run a turn with persisted message history."""
-    # we use pydantic_ai transforms to keep intermediary types (publicly-exposed)
-    # generic, if/when we change LLM backend it doesnt screw up db data
+    # we use pydantic_ai transforms to keep intermediary types
+    # (publicly-exposed) generic, if/when we change LLM backend it
+    # doesnt screw up db data
     operator_messages = self.history_transform.to_operator_messages(
       messages=messages
     )
@@ -97,7 +98,8 @@ class OpAgent:
       messages=operator_messages,
     )
     if stream_sink is None:
-      # if we're not listening to them, we don't care about streaming events,
+      # if we're not listening to them, we don't care about streaming
+      # events,
       # so we just run request plainly
       agent_result = await self.agent.run(
         message_history=message_history
@@ -117,7 +119,8 @@ class OpAgent:
     new_messages = self.pydantic_ai_transform.from_provider_messages(
       messages=agent_result.new_messages(),
     )
-    # deduplicate returning messages that were already present at request time
+    # deduplicate returning messages that were already present at
+    # request time
     new_messages = _without_replayed_prefix(
       previous_messages=operator_messages,
       candidate_messages=new_messages,

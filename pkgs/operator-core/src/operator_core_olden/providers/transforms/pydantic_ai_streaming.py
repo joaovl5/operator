@@ -37,7 +37,9 @@ if TYPE_CHECKING:
 
 
 class PydanticAIStreamTransform:
-  """Translate PydanticAI stream events into transient Operator stream events."""
+  """Translate PydanticAI stream events into transient Operator
+  stream events.
+  """
 
   async def forward_events(
     self,

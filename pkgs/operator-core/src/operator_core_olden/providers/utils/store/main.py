@@ -28,7 +28,9 @@ if TYPE_CHECKING:
 
 @define(kw_only=True)
 class JsonCredentialStore[CredentialT: BaseModel]:
-  """Persist one pydantic credential model in a lock-coordinated JSON file."""
+  """Persist one pydantic credential model in a lock-coordinated
+  JSON file.
+  """
 
   model_type: type[CredentialT]
   path: Path
@@ -78,7 +80,9 @@ class JsonCredentialStore[CredentialT: BaseModel]:
     self,
     updater: Callable[[CredentialT | None], CredentialT | None],
   ) -> CredentialT | None:
-    """Read, update, and persist credentials while holding the store lock."""
+    """Read, update, and persist credentials while holding the
+    store lock.
+    """
     with JsonCredentialStoreTransaction(store=self) as transaction:
       current = transaction.load()
       updated = updater(current)

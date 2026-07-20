@@ -18,19 +18,24 @@ class _OAuthCallbackSettings(SettingsBase):
   @field_validator("path")
   @classmethod
   def validate_path(cls, value: str) -> str:
-    """Require an absolute URI-safe callback path without query or fragment components."""
+    """Require an absolute URI-safe callback path without query or
+    fragment components."""
     if (
       not value.startswith("/")
       or "?" in value
       or "#" in value
       or quote(value, safe="/") != value
     ):
-      message = "callback path must be absolute, URI-safe, and exclude query/fragment components"
+      message = (
+        "callback path must be absolute, URI-safe, and exclude "
+        "query/fragment components"
+      )
       raise ValidationError(message)
     return value
 
   def redirect_uri(self) -> str:
-    """Return the browser redirect URI for this callback configuration."""
+    """Return the browser redirect URI for this callback
+    configuration."""
     return (
       f"http://{DEFAULT_CALLBACK_BIND_HOST}:{self.port}{self.path}"
     )

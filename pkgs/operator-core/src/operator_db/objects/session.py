@@ -106,7 +106,8 @@ class SessionSvc(Svc[Session]):
 
     Args:
         session_title: If set, will use this session title.
-        with_orchestrator: Whether to auto-generate an orchestrator agent.
+        with_orchestrator: Whether to auto-generate an orchestrator
+            agent.
 
     Returns:
         Created Session instance.

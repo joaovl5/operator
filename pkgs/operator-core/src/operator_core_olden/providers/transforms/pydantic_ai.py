@@ -67,7 +67,9 @@ _TOOL_RETURN_PART_ADAPTER: TypeAdapter[
 class PydanticAIMessageTransform(
   ProviderMessageTransform[ModelMessage]
 ):
-  """Translate between stable Operator DTOs and PydanticAI messages."""
+  """Translate between stable Operator DTOs and PydanticAI
+  messages.
+  """
 
   @override
   def to_provider_message(

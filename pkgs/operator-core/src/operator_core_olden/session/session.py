@@ -148,7 +148,9 @@ class Session:
     event_sink: SessionEventSink | None = None,
     working_directory: DirectoryPath | None = None,
   ) -> Session:
-    """Create a persisted runtime session with its orchestrator agent."""
+    """Create a persisted runtime session with its orchestrator
+    agent.
+    """
     session_service = SessionService()
     agent_service = SessionAgentService()
     working_directory = working_directory or Path.cwd()
@@ -182,7 +184,9 @@ class Session:
   async def send_user_message(
     self, msg: UserMessage
   ) -> list[HistoryMessageResponseSchema]:
-    """Send an user-sourced message to an agent, prompting/queue-ing agent's turn."""
+    """Send an user-sourced message to an agent,
+    prompting/queue-ing agent's turn.
+    """
     return await self.agent_loop(
       agent_id=msg.target_agent_id, user_message=msg
     )
@@ -194,8 +198,10 @@ class Session:
     - is context window near exhaustion?
     - is max turn count reached?
 
-    In these circumstances, special exceptions are raised for handling cases:
-    - context needs compaction: raise a SessionRequiresCompaction signal
+    In these circumstances, special exceptions are raised for
+    handling cases:
+    - context needs compaction: raise a SessionRequiresCompaction
+      signal
     - max turn count reached: raise a SessionTurnsExhausted signal
     """
 

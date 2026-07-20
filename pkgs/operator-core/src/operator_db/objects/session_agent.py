@@ -114,7 +114,9 @@ class SessionAgentSvc(Svc[SessionAgent]):
     model_provider: str,
     permissions: dict[str, Any],
   ) -> dict[str, Any]:
-    """Bake data for making an orchestrator agent as part of a larger query."""
+    """Bake data for making an orchestrator agent as part of a larger
+    query.
+    """
     events = self._bake_initial_events(
       system_prompt=system_prompt,
       model_name=model_name,
@@ -157,7 +159,9 @@ class SessionAgentSvc(Svc[SessionAgent]):
   async def get_last_event(
     self, *, agent: SessionAgent
   ) -> CtxEvent | None:
-    """Return last event or `None` if forks are found along the way."""
+    """Return last event or `None` if forks are found along
+    the way.
+    """
     query = (
       select(CtxEvent)
       .where(

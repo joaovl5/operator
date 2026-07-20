@@ -12,8 +12,10 @@ class ObjectMetadata(BaseModel):
   )
   detail: str = Field(
     description=(
-      "Comprehensive text on procedures, comments, etc. for understanding "
-      "and handling the information. May describe: best practices, bad patterns, "
+      "Comprehensive text on procedures, comments, etc. for "
+      "understanding "
+      "and handling the information. May describe: best practices, "
+      "bad patterns, "
       "object-specific instructions or comments, etc."
     ),
   )

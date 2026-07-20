@@ -33,7 +33,7 @@ INVALID_CALLBACK_URL_MESSAGE = "expected a full callback URL"
 def validate_callback_payload(
   payload: CallbackPayload, *, pending_state: str
 ) -> CallbackPayload:
-  """Validate that a callback payload matches the pending OAuth state."""
+  "Validate that a callback payload matches the pending OAuth state."
   try:
     _ = validate_oauth_state(
       received_state=payload.state, pending_state=pending_state
@@ -85,7 +85,9 @@ def obtain_callback_payload(
   pending_state: str,
   dependencies: LoginFlowDependencies,
 ) -> CallbackPayload:
-  """Obtain a validated callback payload via localhost or manual fallback."""
+  """Obtain a validated callback payload via localhost or
+  manual fallback.
+  """
   listener: CallbackListener | None = None
   try:
     try:
@@ -98,11 +100,13 @@ def obtain_callback_payload(
     except OSError as error:
       if error.errno == errno.EADDRINUSE:
         dependencies.output(
-          "OpenAI callback port is already in use; falling back to manual login."
+          "OpenAI callback port is already in use; falling back to "
+          "manual login."
         )
       else:
         dependencies.output(
-          "Unable to start the OpenAI callback listener automatically; falling back to manual login."
+          "Unable to start the OpenAI callback listener "
+          "automatically; falling back to manual login."
         )
       return _prompt_for_manual_callback(
         authorize_url=authorize_url,
@@ -118,7 +122,8 @@ def obtain_callback_payload(
 
     if not browser_started:
       dependencies.output(
-        "Unable to open a browser automatically; falling back to manual login."
+        "Unable to open a browser automatically; falling back to "
+        "manual login."
       )
       listener.close()
       listener = None
@@ -135,7 +140,8 @@ def obtain_callback_payload(
       )
     except CallbackListenerTimeoutError:
       dependencies.output(
-        "Timed out waiting for the OpenAI callback; falling back to manual login."
+        "Timed out waiting for the OpenAI callback; falling back to "
+        "manual login."
       )
       listener.close()
       listener = None

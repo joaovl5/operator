@@ -15,7 +15,8 @@ class OpenAIOAuthError(RuntimeError):
 
 
 class OpenAIOAuthReauthRequiredError(OpenAIOAuthError):
-  """Raised when stored credentials are no longer usable and login is required."""
+  """Raised when stored credentials are no longer usable and login
+  is required."""
 
 
 class OpenAIOAuthProtocolError(OpenAIOAuthError):
@@ -23,7 +24,8 @@ class OpenAIOAuthProtocolError(OpenAIOAuthError):
 
 
 class OpenAIOAuthStateMismatchError(OpenAIOAuthError):
-  """Raised when an OAuth callback returns an unexpected state value."""
+  """Raised when an OAuth callback returns an unexpected state
+  value."""
 
 
 class OpenAIOAuthStoreError(RuntimeError):

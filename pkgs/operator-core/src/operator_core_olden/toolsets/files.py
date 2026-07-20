@@ -47,7 +47,9 @@ type FileWriteResponse = FileWriteError | FileWriteSuccess
 
 class FileSearchRequest(BaseForm):
   queries: list[str] | str = Field(
-    description="Either a search query or a list of search queries to be made",
+    description=(
+      "Either a search query or a list of search queries to be made"
+    ),
   )
 
 
@@ -127,7 +129,8 @@ class FileToolset(BaseToolset):
   ) -> FileWriteResponse:
     """Writes a new file.
 
-    Will give an error if attempting to edit/overwrite an existing file, use 'file_edit'
+    Will give an error if attempting to edit/overwrite an existing
+    file, use 'file_edit'
     instead.
     """
     try:
@@ -136,14 +139,20 @@ class FileToolset(BaseToolset):
         if not await path.is_file():
           return FileWriteError(
             error_code="not_file",
-            error_detail="Specified path already exists and does not belong to a file.",
+            error_detail=(
+              "Specified path already exists and does not "
+              "belong to a file."
+            ),
           )
         async with await path.open(mode="r") as f:
           content_len = len(await f.read())
         if content_len > 0:  # edge case of empty files being allowed
           return FileWriteError(
             error_code="file_exists",
-            error_detail="Cannot use this tool for writing into an already-existing file!",
+            error_detail=(
+              "Cannot use this tool for writing into an "
+              "already-existing file!"
+            ),
           )
 
       async with await path.open(mode="w") as f:
@@ -160,9 +169,10 @@ class FileToolset(BaseToolset):
   ) -> FileSearchResponse:
     """Find file paths matching any query string.
 
-    Plain queries are matched as case-insensitive path tokens, so a query like
-    ``"openai oauth"`` finds paths containing both words. Queries containing glob
-    metacharacters keep glob behavior, for example ``"**/*oauth*.py"``.
+    Plain queries are matched as case-insensitive path tokens, so
+    a query like ``"openai oauth"`` finds paths containing both
+    words. Queries containing glob metacharacters keep glob
+    behavior, for example ``"**/*oauth*.py"``.
     """
     queries: list[str]
     match req.queries:
@@ -173,7 +183,9 @@ class FileToolset(BaseToolset):
     if not queries:
       return FileSearchError(
         error_code="empty_query",
-        error_detail="At least one non-empty query is required for file search",
+        error_detail=(
+          "At least one non-empty query is required for file search"
+        ),
       )
 
     try:

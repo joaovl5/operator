@@ -54,7 +54,8 @@ async def _main() -> None:
 
     pp(d)
     p(
-      f"Took {t_d:.4f}s on {num_msg} reqs - avg: {(t_d / num_msg):.4f}s/req"
+      f"Took {t_d:.4f}s on {num_msg} reqs - avg: "
+      f"{(t_d / num_msg):.4f}s/req"
     )
 
 

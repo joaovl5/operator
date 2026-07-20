@@ -16,7 +16,8 @@ class OpenAIOAuthManagerProtocol(Protocol):
 
   @property
   def current_credentials(self) -> OpenAIOAuthCredentials | None:
-    """Return the latest credentials currently stored on disk, if any."""
+    """Return the latest credentials currently stored on disk,
+    if any."""
     ...
 
   async def get_access_token(self) -> str:
@@ -27,7 +28,8 @@ class OpenAIOAuthManagerProtocol(Protocol):
 def build_chatgpt_oauth_client(
   *, manager: OpenAIOAuthManagerProtocol
 ) -> AsyncOpenAI:
-  """Build an authenticated AsyncOpenAI client for the ChatGPT Codex backend."""
+  """Build an authenticated AsyncOpenAI client for the ChatGPT
+  Codex backend."""
   return _ChatGPTOAuthClient(manager=manager)
 
 

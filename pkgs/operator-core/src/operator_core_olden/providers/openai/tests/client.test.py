@@ -103,12 +103,14 @@ def make_oauth_store(tmp_path: Path) -> OpenAIOAuthStore:
     pytest.param(None, None, id="account-missing"),
   ],
 )
-def test_build_chatgpt_oauth_client_sets_codex_base_url_and_public_headers(
+def \
+test_build_chatgpt_oauth_client_sets_codex_base_url_and_public_headers(
   tmp_path: Path,
   account_id: str | None,
   expected_header: str | None,
 ) -> None:
-  """OAuth clients target ChatGPT Codex and expose account headers only when present."""
+  """OAuth clients target ChatGPT Codex and expose account
+  headers only when present."""
   store = make_store(
     tmp_path, make_credentials(account_id=account_id)
   )
@@ -126,11 +128,13 @@ def test_build_chatgpt_oauth_client_sets_codex_base_url_and_public_headers(
     )
 
 
-def test_oauth_manager_refreshes_expired_credentials_and_persists_them(
+def \
+test_oauth_manager_refreshes_expired_credentials_and_persists_them(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
-  """Expired credentials refresh lazily and persist through the store."""
+  """Expired credentials refresh lazily and persist through the
+  store."""
   monkeypatch.setattr(
     "operator_shared.time.utils.time.time", lambda: 0.0
   )
@@ -165,7 +169,8 @@ def test_oauth_manager_serializes_refresh_across_concurrent_callers(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
-  """Concurrent callers share a single refresh result for one store."""
+  """Concurrent callers share a single refresh result for one
+  store."""
   monkeypatch.setattr(
     "operator_shared.time.utils.time.time", lambda: 0.0
   )
@@ -207,11 +212,13 @@ def test_oauth_manager_serializes_refresh_across_concurrent_callers(
   assert refresh_calls == 1
 
 
-def test_oauth_manager_serializes_refresh_across_managers_sharing_one_store(
+def \
+test_oauth_manager_serializes_refresh_across_managers_sharing_one_store(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
-  """Separate managers over one store share the same persisted refresh result."""
+  """Separate managers over one store share the same persisted
+  refresh result."""
   monkeypatch.setattr(
     "operator_shared.time.utils.time.time", lambda: 0.0
   )
@@ -261,7 +268,8 @@ def test_oauth_manager_serializes_refresh_across_managers_sharing_one_store(
 def test_oauth_manager_observes_external_store_updates_and_deletes(
   tmp_path: Path,
 ) -> None:
-  """Managers read the store each time instead of holding stale credential snapshots."""
+  """Managers read the store each time instead of holding stale
+  credential snapshots."""
   store = make_store(tmp_path, make_credentials(expires_at_ms=None))
   manager = OpenAIOAuthManager(store=store)
 
@@ -300,7 +308,8 @@ def test_oauth_manager_requires_credentials_when_store_is_empty(
 def test_oauth_manager_normalizes_refresh_auth_failures(
   tmp_path: Path,
 ) -> None:
-  """Refresh auth failures are converted into the public re-login message."""
+  """Refresh auth failures are converted into the public
+  re-login message."""
   store = make_store(tmp_path, make_credentials(expires_at_ms=0))
 
   def fail_refresh(*, refresh_token: str) -> OpenAITokenResponse:
@@ -322,7 +331,8 @@ def test_delete_during_refresh_leaves_store_empty(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
-  """Deleting credentials during refresh does not resurrect stale state."""
+  """Deleting credentials during refresh does not resurrect
+  stale state."""
   monkeypatch.setattr(
     "operator_shared.time.utils.time.time", lambda: 0.0
   )
@@ -368,7 +378,8 @@ def test_newer_credentials_win_over_stale_refresh_results(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
-  """A concurrent relogin is kept instead of being overwritten by stale refresh output."""
+  """A concurrent relogin is kept instead of being overwritten
+  by stale refresh output."""
   monkeypatch.setattr(
     "operator_shared.time.utils.time.time", lambda: 0.0
   )
@@ -416,10 +427,10 @@ def test_newer_credentials_win_over_stale_refresh_results(
   assert persisted.refresh_token == RELOGIN_REFRESH_TOKEN
 
 
-def test_oauth_responses_settings_return_validated_serializable_model() -> (
-  None
-):
-  """OAuth responses defaults are a serializable model, not an ad-hoc typed dict."""
+def test_oauth_responses_settings_return_validated_serializable_model(
+) -> None:
+  """OAuth responses defaults are a serializable model, not an
+  ad-hoc typed dict."""
   signature = inspect.signature(oauth_responses_settings)
   assert signature.parameters == {}
 
@@ -442,10 +453,12 @@ def test_oauth_responses_settings_return_validated_serializable_model() -> (
     )
 
 
-def test_openai_oauth_model_config_and_provider_build_responses_models(
+def \
+test_openai_oauth_model_config_and_provider_build_responses_models(
   tmp_path: Path,
 ) -> None:
-  """OAuth provider uses a validated OAuth config boundary to build responses models."""
+  """OAuth provider uses a validated OAuth config boundary to
+  build responses models."""
   provider = OpenAIOAuthModelProvider(
     store=make_oauth_store(tmp_path)
   )
@@ -473,7 +486,8 @@ def test_openai_oauth_model_config_and_provider_build_responses_models(
 def test_openai_and_oauth_providers_build_public_model_types(
   tmp_path: Path,
 ) -> None:
-  """Plain OpenAI providers build chat models while OAuth providers build responses models."""
+  """Plain OpenAI providers build chat models while OAuth
+  providers build responses models."""
   openai_model = OpenAIModelProvider(
     openai_client=AsyncOpenAI(api_key="test-api-key")
   ).build_model(
@@ -495,10 +509,10 @@ def test_openai_and_oauth_providers_build_public_model_types(
   assert isinstance(oauth_model, OpenAIResponsesModel)
 
 
-def test_public_openai_client_helpers_match_workspace_api_conventions() -> (
-  None
-):
-  """Public provider helpers keep keyword-only arguments and real docstrings."""
+def test_public_openai_client_helpers_match_workspace_api_conventions(
+) -> None:
+  """Public provider helpers keep keyword-only arguments and real
+  docstrings."""
   signature = inspect.signature(get_openai_client)
   assert (
     signature.parameters["api_key"].kind

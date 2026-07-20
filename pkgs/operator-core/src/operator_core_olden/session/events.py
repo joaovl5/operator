@@ -132,7 +132,9 @@ class AgentRunFailed:
 
 @define(frozen=True, kw_only=True)
 class AgentRunCancelled:
-  """Model execution was cancelled before final messages were persisted."""
+  """Model execution was cancelled before final messages were
+  persisted.
+  """
 
   agent_id: str
   history_id: str

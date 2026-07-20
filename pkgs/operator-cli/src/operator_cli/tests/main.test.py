@@ -61,7 +61,7 @@ def test_main_dispatches_each_openai_auth_command(
   attribute: str,
   expected: int,
 ) -> None:
-  """Each public OpenAI auth command dispatches to its corresponding CLI helper."""
+  """Each auth command dispatches to its corresponding CLI helper."""
 
   def handler() -> int:
     return expected

@@ -29,9 +29,11 @@ class _AgentPartEv(_SessionEv):
 class _AgentDeltaEv(_AgentPartEv):
   content: str | None = None
   replace: bool = False
-  """Whether the delta should be treated as an append or replace operation.
+  """Whether the delta should be treated as an append or replace
+  operation.
 
-    When `False`, will treat as 'append', and when `True` will be 'replace'.
+    When `False`, will treat as 'append', and when `True` will be
+    'replace'.
     """
 
 
@@ -111,8 +113,10 @@ class SessionEventSink(ABC):
   ) -> None:
     """Handle an event.
 
-    This is intentionally made non-async - any async logic should be made elsewhere,
-    given this function will be called a lot and should be non-blocking.
+    This is intentionally made non-async - any async logic should be
+    made elsewhere,
+    given this function will be called a lot and should be
+    non-blocking.
     """
 
 

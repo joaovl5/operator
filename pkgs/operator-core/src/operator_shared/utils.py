@@ -19,7 +19,8 @@ type _Dict = dict[Any, Any]
 def walk_dicts(
   x: _Dict, predicate: Callable[[_Dict], _Dict]
 ) -> _Dict:
-  """Walk recursively through dictionaries, calling predicate after children."""
+  """Walk recursively through dictionaries, calling predicate after
+  children."""
   out: _Dict = {}
 
   for k, v in x.items():
@@ -62,7 +63,8 @@ def present_json(
 ) -> str:
   """Encode a JSON in a string through some means.
 
-  Current impl. will use YAML if value isn't scalar, otherwise will convert to string.
+  Current impl. will use YAML if value isn't scalar, otherwise will
+  convert to string.
   """
   match x:
     case None:
@@ -113,13 +115,16 @@ def ensure_n[SeqT: Sequence[Any]](
 ) -> SeqT:
   """Ensure `seq` abides by length constraints.
 
-  Will throw an error if no constraints were selected in the arguments.
+  Will throw an error if no constraints were selected in the
+  arguments.
 
   Args:
       seq: Sequence to evaluate length
       n: Expected length values, disconsidered if `None`.
-      lmin: Minimum (inclusive) value of length, disconsidered if `None`.
-      lmax: Minimum (inclusive) value of length, disconsidered if `None`.
+      lmin: Minimum (inclusive) value of length, disconsidered if
+          `None`.
+      lmax: Minimum (inclusive) value of length, disconsidered if
+          `None`.
 
   """
   if not (n or lmin or lmax):
@@ -128,7 +133,10 @@ def ensure_n[SeqT: Sequence[Any]](
   if isinstance(n, int):
     n = (n,)
   if not _check_bounds(n, lmin, lmax):
-    msg = "Bounds given for argument `n` are outside those of arguments `min`/`max`."
+    msg = (
+      "Bounds given for argument `n` are outside those of "
+      "arguments `min`/`max`."
+    )
     raise ValueError(msg)
   seq_len = len(seq)
   if (n and seq_len in n) or _check_bounds(seq_len, lmin, lmax):
@@ -154,9 +162,11 @@ def ensure_singleton[T](
   *,
   none_ok: bool = False,
 ) -> T | None:
-  """Error if `seq` doesn't contain exactly one element, return it otherwise.
+  """Error if `seq` doesn't contain exactly one element, return it
+  otherwise.
 
-  If `none_ok` is set, will not hard-fail if sequence has no elements and will return
+  If `none_ok` is set, will not hard-fail if sequence has no
+  elements and will return
   `None`.
   """
   seq = ensure_n(seq, n=(0, 1) if none_ok else 1)
@@ -165,7 +175,8 @@ def ensure_singleton[T](
   return None
 
 
-# type checkers dont like overloads for this apparently so we need to make these
+# type checkers dont like overloads for this apparently so we need to
+# make these
 # pipe-form aliases
 
 

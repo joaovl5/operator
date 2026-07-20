@@ -99,7 +99,9 @@ class SubagentToolset(BaseToolset):
   async def spawn_subagent(
     self, req: SpawnSubagentRequest
   ) -> SpawnSubagentResponse:
-    """Spawn an ephemeral subagent in foreground, return its response on a query."""
+    """Spawn an ephemeral subagent in foreground, return its
+    response on a query.
+    """
     if req.agent_id in self.session.agents:
       return SpawnSubagentError(
         message="Subagent with that name already exists.",

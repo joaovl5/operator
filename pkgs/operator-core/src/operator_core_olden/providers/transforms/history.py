@@ -51,12 +51,16 @@ _SCHEMA_NAME = "operator_message_v1"
 
 
 class HistoryMessageTransform:
-  """Translate between history schemas and stable Operator message DTOs."""
+  """Translate between history schemas and stable Operator
+  message DTOs.
+  """
 
   def to_operator_message(
     self, *, message: HistoryMessageSchema
   ) -> OperatorMessage:
-    """Convert one persisted history message to a stable Operator message."""
+    """Convert one persisted history message to a stable Operator
+    message.
+    """
     if operator_message := _stable_payload_to_operator_message(
       message.json_contents
     ):
@@ -68,7 +72,9 @@ class HistoryMessageTransform:
     *,
     messages: Sequence[HistoryMessageSchema],
   ) -> list[OperatorMessage]:
-    """Convert persisted history messages to stable Operator messages."""
+    """Convert persisted history messages to stable Operator
+    messages.
+    """
     return [
       self.to_operator_message(message=message)
       for message in messages
@@ -80,7 +86,9 @@ class HistoryMessageTransform:
     message: OperatorMessage,
     author_id: str | None = None,
   ) -> HistoryMessageRequestSchema:
-    """Convert one stable Operator message to a history append request."""
+    """Convert one stable Operator message to a history append
+    request.
+    """
     return HistoryMessageRequestSchema(
       role=_role_from_operator_message(message),
       author_id=author_id or message.author_id,

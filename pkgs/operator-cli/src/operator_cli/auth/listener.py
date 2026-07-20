@@ -26,7 +26,9 @@ def create_callback_listener(
   path: str,
   pending_state: str,
 ) -> CallbackListener:
-  """Start the localhost callback listener used by the browser login flow."""
+  """Start the localhost callback listener used by the
+  browser login flow.
+  """
   return _LocalhostCallbackListener(
     bind_host=bind_host,
     port=port,

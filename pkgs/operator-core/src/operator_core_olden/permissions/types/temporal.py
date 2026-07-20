@@ -11,7 +11,8 @@ from operator_shared.forms import BaseForm
 
 class _BaseTemporalScope(BaseForm):
   def wrap_permission(self, perm: PermissionType) -> PermissionItem:
-    """Wrap temporal scope in a permission, yielding a `PermissionItem`."""
+    """Wrap temporal scope in a permission, yielding a
+    `PermissionItem`."""
     return PermissionItem(
       permission=perm,
       temporal_scope=self,
@@ -29,11 +30,13 @@ class TemporalScope:
 
     starts_at: datetime | None = Field(
       None,
-      description="If set, scope is validated from this starting point.",
+      description="If set, scope is validated from this "
+      "starting point.",
     )
     ends_at: datetime | None = Field(
       None,
-      description="If set, scope is validated up to this starting point.",
+      description="If set, scope is validated up to this "
+      "starting point.",
     )
 
   class Session(_BaseTemporalScope):
@@ -43,4 +46,5 @@ class TemporalScope:
 type TemporalScopeType = (
   TemporalScope.All | TemporalScope.Interval | TemporalScope.Session
 )
-"""Union for kinds of temporal scopes for time or step-bound objects."""
+"""Union for kinds of temporal scopes for time or step-bound
+objects."""

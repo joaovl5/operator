@@ -120,7 +120,9 @@ def _get_user_contents(ev: _Msg) -> list[UserContent]:
 def _get_agent_part(
   ev: _Msg, cnts: list[UserContent]
 ) -> UserPromptPart:
-  """Render agent content while retaining persistence-only raw-data metadata."""
+  """Render agent content while retaining persistence-only raw-data
+  metadata.
+  """
   msg = MsgAgent(
     content=cnts,
     timestamp=ev.created_at,
@@ -199,7 +201,10 @@ def _get_parts_res(
   match ev.role:
     case MsgRole.AGENT_SELF:
       if ev.binary_contents is not None:
-        msg = "Agent content cannot contain a file; use the FILE_SELF role!"
+        msg = (
+          "Agent content cannot contain a file; use the FILE_SELF "
+          "role!"
+        )
         raise ValueError(msg)
       text_parts: list[ModelResponsePart] = []
       if ev.text is not None:
@@ -238,7 +243,8 @@ async def _legacy_ev_to_pyai_msg(
 ) -> ModelMessage:
   """Convert into Pydantic AI message.
 
-  If `refresh` is NOT set, won't force-refresh session to load params and may
+  If `refresh` is NOT set, won't force-refresh session to load params
+  and may
   error in case that required attributes aren't loaded.
   """
   attrs = (
@@ -369,7 +375,9 @@ async def events_to_pyai_msg(
   session: AsyncSession | None,
   refresh: bool = True,
 ) -> ModelMessage:
-  """Collapse one complete message-event group into one Pydantic AI message."""
+  """Collapse one complete message-event group into one Pydantic AI
+  message.
+  """
   if not events:
     error_msg = "Cannot construct a message from no events!"
     raise ValueError(error_msg)
@@ -416,7 +424,8 @@ def _ensure_req_parts_len(parts: Sequence[Any]) -> None:
     error_msg = "Parts shouldn't be empty!"
     raise ValueError(error_msg)
   if parts_len != 1:
-    # if pyai does this we will have to refactor this function to return
+    # if pyai does this we will have to refactor this function
+    # to return
     # multiple `Self` instances
     error_msg = "Parts isn't expected to have more than one thing!"
     raise ValueError(error_msg)
@@ -429,7 +438,9 @@ def _ensure_user_cnts_len(user_cnts: Sequence[Any] | str) -> None:
 
 
 def _get_pydantic_metadata(msg: ModelMessage) -> dict[str, Any]:
-  """Serialize message-level Pydantic AI fields for event persistence."""
+  """Serialize message-level Pydantic AI fields for event
+  persistence.
+  """
   payload = ModelMessagesTypeAdapter.dump_python([msg], mode="json")[
     0
   ]
@@ -475,7 +486,9 @@ def _set_raw_content(kw: dict[str, Any], value: object) -> None:
 
 
 def _get_serialized_part_content(msg: ModelRequest) -> JsonValue:
-  """Extract JSON-mode content from a single serialized request part."""
+  """Extract JSON-mode content from a single serialized request
+  part.
+  """
   payload = _get_pydantic_message(msg)
   parts = payload.get("parts")
   if not isinstance(parts, list) or len(parts) != 1:
@@ -607,7 +620,9 @@ def _get_response_json_marker(
 def _apply_tool_call_projection(
   kw: dict[str, Any], part: ToolCallPart
 ) -> None:
-  """Project searchable tool-call fields without changing replay data."""
+  """Project searchable tool-call fields without changing replay
+  data.
+  """
   kw["role"] = MsgRole.TOOL_CALL
   if isinstance(part.args, str):
     kw["text"] = part.args
@@ -732,12 +747,15 @@ async def from_pyai_msg(
   parent_id: IDType,
   session: AsyncSession | None = None,
 ) -> list[_Msg]:
-  """Split one Pydantic AI message into a serial group of context events.
+  """Split one Pydantic AI message into a serial group of context
+  events.
 
-  The returned events are ordered from the first message part to the last. A caller
+  The returned events are ordered from the first message part to the
+  last. A caller
   advancing a context pointer must use the final event.
 
-  If a session is supplied, the objects are added and flushed but not committed.
+  If a session is supplied, the objects are added and flushed but not
+  committed.
   """
   if not msg.parts:
     error_msg = "Parts shouldn't be empty!"

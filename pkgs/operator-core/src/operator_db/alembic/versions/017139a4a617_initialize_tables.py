@@ -243,7 +243,10 @@ def schema_upgrades() -> None:
       nullable=True,
     ),
     sa.CheckConstraint(
-      "((message_group_id IS NULL AND message_group_index IS NULL) OR (message_group_id IS NOT NULL AND message_group_index IS NOT NULL))",
+      "((message_group_id IS NULL "
+      "AND message_group_index IS NULL) "
+      "OR (message_group_id IS NOT NULL "
+      "AND message_group_index IS NOT NULL))",
       name=op.f(
         "ck_context_events_ck_context_events_message_group_membership"
       ),

@@ -91,7 +91,9 @@ class FakeListener:
   def wait_for_callback(
     self, *, timeout_seconds: int
   ) -> CallbackPayload:
-    """Return the injected callback payload or raise the injected error."""
+    """Return the injected callback payload or raise the
+    injected error.
+    """
     self.timeout_seconds = timeout_seconds
     if isinstance(self._result, Exception):
       raise self._result
@@ -104,10 +106,12 @@ class FakeListener:
 
 @final
 class ControlledLock:
-  """Lock wrapper that lets a test force two concurrent capture attempts."""
+  """Lock wrapper that lets a test force two concurrent
+  capture attempts.
+  """
 
   def __init__(self) -> None:
-    """Initialize the lock wrapper state used by the concurrency test."""
+    "Initialize the lock wrapper state used by the concurrency test."
     self._lock = Lock()
     self.first_entered = Event()
     self.release_first = Event()
@@ -128,7 +132,7 @@ class ControlledLock:
     traceback: TracebackType | None,
     /,
   ) -> None:
-    """Release the wrapped lock after the critical section completes."""
+    "Release the wrapped lock after the critical section completes."
     del type_, value, traceback
     self._lock.release()
 
@@ -196,7 +200,7 @@ def unexpected_browser_open(_url: str) -> bool:
 
 
 def manual_callback_input(*, settings: OperatorSettings) -> InputText:
-  """Build a manual callback input function with the expected state."""
+  "Build a manual callback input function with the expected state."
 
   def input_text(_prompt: str) -> str:
     return make_callback_url(
@@ -216,7 +220,7 @@ def ignore_output(_line: str) -> None:
 def exchange_requires_relogin(
   *, code: str, code_verifier: str, redirect_uri: str
 ) -> OpenAITokenResponse:
-  """Raise the focused re-login error surfaced by the core OAuth layer."""
+  "Raise the focused re-login error surfaced by the core OAuth layer."
   del code, code_verifier, redirect_uri
   message = "needs re-login"
   raise OpenAIOAuthReauthRequiredError(message)
@@ -233,7 +237,9 @@ def exchange_missing_account(
 def exchange_missing_refresh_token(
   *, code: str, code_verifier: str, redirect_uri: str
 ) -> OpenAITokenResponse:
-  """Return a token response that fails conversion into stored credentials."""
+  """Return a token response that fails conversion into
+  stored credentials.
+  """
   del code, code_verifier, redirect_uri
   return OpenAITokenResponse(
     access_token=ACCESS_TOKEN, refresh_token=None
@@ -246,19 +252,21 @@ def unexpected_input(_prompt: str) -> str:
   raise AssertionError(message)
 
 
-def test_default_login_flow_dependencies_uses_dedicated_listener_module() -> (
-  None
-):
-  """The production dependency bundle is assembled from the listener module."""
+def test_default_login_flow_uses_dedicated_listener_module() -> None:
+  """The production dependency bundle is assembled from the
+  listener module.
+  """
   assert default_login_flow_dependencies().listener_factory is (
     create_callback_listener
   )
 
 
-def test_run_openai_login_uses_fixed_localhost_binding_and_redirect_uri(
+def test_login_uses_fixed_localhost_binding_and_redirect_uri(
   tmp_path: Path,
 ) -> None:
-  """Login binds the listener to localhost and uses the fixed localhost redirect URI."""
+  """Login binds the listener to localhost and uses the fixed
+  localhost redirect URI.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   listener = FakeListener(
@@ -310,10 +318,12 @@ def test_run_openai_login_uses_fixed_localhost_binding_and_redirect_uri(
   assert urlsplit(redirect_uri).hostname == "localhost"
 
 
-def test_run_openai_login_persists_credentials_from_localhost_callback(
+def test_login_persists_credentials_from_localhost_callback(
   tmp_path: Path,
 ) -> None:
-  """Successful login stores exchanged credentials and closes the listener."""
+  """Successful login stores exchanged credentials and closes
+  the listener.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   listener = FakeListener(
@@ -346,7 +356,9 @@ def test_run_openai_login_persists_credentials_from_localhost_callback(
 def test_run_openai_login_port_in_use_falls_back_to_manual_mode(
   tmp_path: Path,
 ) -> None:
-  """Port conflicts skip the listener and prompt for manual callback entry."""
+  """Port conflicts skip the listener and prompt for manual
+  callback entry.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   output_lines: list[str] = []
@@ -378,10 +390,12 @@ def test_run_openai_login_port_in_use_falls_back_to_manual_mode(
   assert "manual" in "\n".join(output_lines).lower()
 
 
-def test_run_openai_login_listener_start_failure_falls_back_to_manual_mode(
+def test_listener_start_failure_falls_back_to_manual_mode(
   tmp_path: Path,
 ) -> None:
-  """Non-port-conflict listener startup failures still fall back to manual mode."""
+  """Non-port-conflict listener startup failures still fall
+  back to manual mode.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   output_lines: list[str] = []
@@ -481,12 +495,14 @@ def test_run_openai_login_timeout_falls_back_to_manual_mode(
     ),
   ],
 )
-def test_run_openai_login_rejects_invalid_manual_callback_input_without_persisting(
+def test_invalid_manual_callback_does_not_persist_credentials(
   tmp_path: Path,
   manual_state: str | None,
   expected_message: str,
 ) -> None:
-  """Invalid manual callback input fails cleanly without storing credentials."""
+  """Invalid manual callback input fails cleanly without
+  storing credentials.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   output_lines: list[str] = []
@@ -531,10 +547,8 @@ def test_run_openai_login_rejects_invalid_manual_callback_input_without_persisti
   assert expected_message in "\n".join(output_lines).lower()
 
 
-def test_parse_callback_url_and_state_validation_reject_invalid_values() -> (
-  None
-):
-  """Callback parsing and state validation fail with focused errors."""
+def test_callback_validation_rejects_invalid_url_and_state() -> None:
+  "Callback parsing and state validation fail with focused errors."
   settings = make_settings()
 
   payload = parse_callback_url(
@@ -578,18 +592,16 @@ def test_parse_callback_url_and_state_validation_reject_invalid_values() -> (
     )
 
 
-def test_parse_callback_query_rejects_malformed_query_with_callback_parse_error() -> (
-  None
-):
+def test_malformed_callback_query_raises_parse_error() -> None:
   """Malformed query strings become a user-facing parse error."""
   with pytest.raises(CallbackParseError):
     _ = parse_callback_query(query="a=1&%")
 
 
-def test_parse_callback_query_rejects_missing_values_with_callback_parse_error() -> (
-  None
-):
-  """Missing query fields are translated to typed callback parse errors."""
+def test_missing_callback_query_values_raise_parse_error() -> None:
+  """Missing query fields are translated to typed callback
+  parse errors.
+  """
   with pytest.raises(
     CallbackParseError, match="callback URL is missing code"
   ):
@@ -611,7 +623,9 @@ def test_parse_callback_query_returns_payload_for_valid_input() -> (
 
 
 def test_callback_listener_keeps_first_valid_payload() -> None:
-  """The localhost listener keeps the first callback payload it captures."""
+  """The localhost listener keeps the first callback payload
+  it captures.
+  """
   listener = _LocalhostCallbackListener(
     bind_host="127.0.0.1",
     port=0,
@@ -631,9 +645,7 @@ def test_callback_listener_keeps_first_valid_payload() -> None:
     listener.close()
 
 
-def test_callback_listener_keeps_first_payload_under_concurrent_capture() -> (
-  None
-):
+def test_concurrent_callback_capture_keeps_first_payload() -> None:
   """Concurrent callback capture still preserves the first payload."""
   listener = _LocalhostCallbackListener(
     bind_host="127.0.0.1",
@@ -667,16 +679,20 @@ def test_callback_listener_keeps_first_payload_under_concurrent_capture() -> (
 
 
 def test_callback_listener_uses_threaded_http_server() -> None:
-  """The localhost listener transport uses a threaded reusable HTTP server."""
+  """The localhost listener transport uses a threaded
+  reusable HTTP server.
+  """
   assert issubclass(_CallbackHTTPServer, ThreadingHTTPServer)
   assert _CallbackHTTPServer.daemon_threads is True
   assert _CallbackHTTPServer.allow_reuse_address is True
 
 
-def test_callback_listener_ignores_wrong_state_until_matching_callback() -> (
+def test_listener_ignores_wrong_state_until_matching_callback() -> (
   None
 ):
-  """The live listener ignores wrong-state callbacks until a matching one arrives."""
+  """The live listener ignores wrong-state callbacks until a
+  matching one arrives.
+  """
   listener = _LocalhostCallbackListener(
     bind_host="127.0.0.1",
     port=0,
@@ -708,10 +724,12 @@ def test_callback_listener_ignores_wrong_state_until_matching_callback() -> (
     listener.close()
 
 
-def test_run_openai_login_surfaces_relogin_guidance_without_persisting(
+def test_relogin_guidance_does_not_persist_credentials(
   tmp_path: Path,
 ) -> None:
-  """Token exchange auth failures return guidance instead of storing partial state."""
+  """Token exchange auth failures return guidance instead of
+  storing partial state.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   output_lines: list[str] = []
@@ -736,10 +754,12 @@ def test_run_openai_login_surfaces_relogin_guidance_without_persisting(
   assert "log in again" in "\n".join(output_lines).lower()
 
 
-def test_run_openai_login_handles_protocol_failures_without_persisting(
+def test_protocol_failures_do_not_persist_credentials(
   tmp_path: Path,
 ) -> None:
-  """Protocol failures become user-facing login failures without storing state."""
+  """Protocol failures become user-facing login failures
+  without storing state.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   output_lines: list[str] = []
@@ -767,7 +787,9 @@ def test_run_openai_login_handles_protocol_failures_without_persisting(
 def test_run_openai_login_tolerates_missing_account_claims(
   tmp_path: Path,
 ) -> None:
-  """Login still persists credentials when the token lacks a ChatGPT account claim."""
+  """Login still persists credentials when the token lacks a
+  ChatGPT account claim.
+  """
   settings = make_settings()
   store = OpenAIOAuthStore(path=tmp_path / "openai.json")
   listener = FakeListener(

@@ -21,7 +21,8 @@ if TYPE_CHECKING:
 
 @define(kw_only=True)
 class OpenAIOAuthModelProvider(ModelProvider[OpenAIOAuthModelConfig]):
-  """OAuth-backed OpenAI provider using responses models by default."""
+  """OAuth-backed OpenAI provider using responses models by
+  default."""
 
   store: OpenAIOAuthStore
   _oauth_manager: OpenAIOAuthManager | None = field(

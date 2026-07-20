@@ -15,7 +15,8 @@ from .types import OpenAIOAuthCredentials
 
 
 def default_openai_oauth_credentials_path() -> Path:
-  """Return the default on-disk location for OpenAI OAuth credentials."""
+  """Return the default on-disk location for OpenAI OAuth
+  credentials."""
   xdg_data_home = os.environ.get("XDG_DATA_HOME")
   base_dir = (
     Path(xdg_data_home)
@@ -34,7 +35,8 @@ class OpenAIOAuthStore(JsonCredentialStore[OpenAIOAuthCredentials]):
     path: Path | None = None,
     base_dir: Path | None = None,
   ) -> None:
-    """Initialize the OpenAI OAuth store from an explicit or derived path."""
+    """Initialize the OpenAI OAuth store from an explicit or
+    derived path."""
     super().__init__(
       model_type=OpenAIOAuthCredentials,
       path=_resolve_store_path(path=path, base_dir=base_dir),

@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
 class StopAgentMethod(StrEnum):
   KILL = "kill"
-  """Don't wait for anything and just abort any agent-related tasks."""
+  """Don't wait for anything and just abort any agent-related
+  tasks."""
 
   WAIT_LOOP = "wait-loop"
   """Stop after agent's loop is done."""

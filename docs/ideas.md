@@ -22,12 +22,19 @@
 
 ### Data Communication
 
-- Have sort of API via unix socket or `127.0.0.1`
+- Have API via unix socket or http
 
 ### Agent
 
 #### Extras
 
+- Context Engineering
+  - Reminder Tool - for reminding agent
+    - Can remind after N messages/turns, N tokens, or N time has passed
+  - Notes Tool - for tracking notes throughout long-context tasks
+    - May be complementary or overlapping with task-specific tooling
+  - Notes and reminders should get passed from subagents after they
+    deactivate.
 - External environment control tooling, let agent handle commands on
   some environment, either tmux, a container, or a VM, having text or
   graphical views
@@ -48,12 +55,26 @@
   ```markdown
   ---
   name: writing-tests
-  triggers:
-    glob: << **/*.test.py
-    regex: << "test_\w+"
-    imports: << pytest # lsp-aware stuff
+  triggers: |
+    glob **/*.test.py
+    regex test_\w+
+    imports pytest
   ---
   ```
+
+- Automatic read files (especially Markdown) compression
+  - Potential experiments, independent of each other:
+    - Rendering reads as images (i.e. "snapcompact")
+    - (for markdown, especially files that are read-only) strip
+      or transform unnecessary elements:
+      - preserve 'literals' i.e. inner content of code fences/blocks,
+        backticks, quotations
+      - extra whitespace - keep one whitespace/newline at most - keep
+        depth nested list items preserved by replacing preceding tabs
+        with dashes (e.g. `---` for a doubly-nested item) - treat all
+        headers as lists themselves
+      - terminating periods in bullet point items
+      - tables may be turned into csv form
 
 ## For TUI/Interface
 
@@ -65,6 +86,17 @@
 - Allow navigating between agent tree/graph - either running or
   terminated agents
   - Visualization of graph (unicode/kitty-image)
+- Have user-facing conversation with agent be less-spammy
+  - Thinking traces, tool calls, and everything "under-the-hood" can
+    be "to the side" in another panel, while communication is kept
+    clear with user without flooding with info.
+- Asynchronous communication with user (doesn't wait on the user for
+  answers but still can choose to 'poll' or 'wait' for them)
+  - Ask tool with "block" boolean parameter (can be forcibly disabled
+    in, say, a 'goal' mode)
+  - Poll tool for waiting on pending tasks/jobs
+- Pending tasks jobs may have special visibility/components
+  - Time-bound (timer/alarm) may have fixed component
 
 Technical/lower-level:
 
