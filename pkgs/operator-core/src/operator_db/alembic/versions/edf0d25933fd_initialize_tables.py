@@ -1,7 +1,7 @@
 """initialize tables.
 
-Created at 2026-07-14 01:39:39.851207
-Revision ID: 017139a4a617
+Created at 2026-07-21 12:18:25.090196
+Revision ID: edf0d25933fd
 Revises:
 
 """
@@ -14,16 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 from operator_db.alembic.types import sa
 
-__all__ = (
-  "data_downgrades",
-  "data_upgrades",
-  "downgrade",
-  "schema_downgrades",
-  "schema_upgrades",
-  "upgrade",
-)
-
-revision = "017139a4a617"
+revision = "edf0d25933fd"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -243,10 +234,10 @@ def schema_upgrades() -> None:
       nullable=True,
     ),
     sa.CheckConstraint(
-      "((message_group_id IS NULL "
-      "AND message_group_index IS NULL) "
-      "OR (message_group_id IS NOT NULL "
-      "AND message_group_index IS NOT NULL))",
+      "((message_group_id IS NULL AND "
+      "message_group_index IS NULL) OR "
+      "(message_group_id IS NOT NULL AND "
+      "message_group_index IS NOT NULL))",
       name=op.f(
         "ck_context_events_ck_context_events_message_group_membership"
       ),
@@ -309,16 +300,16 @@ def schema_upgrades() -> None:
 
   with op.batch_alter_table("contexts", schema=None) as batch_op:
     batch_op.create_foreign_key(
-      "fk_contexts_id_pointer_event_id_context_events",
-      "context_events",
-      ["id", "pointer_event_id"],
-      ["context_id", "id"],
-    )
-    batch_op.create_foreign_key(
       "fk_contexts_pointer_event_id_context_events",
       "context_events",
       ["pointer_event_id"],
       ["id"],
+    )
+    batch_op.create_foreign_key(
+      "fk_contexts_id_pointer_event_id_context_events",
+      "context_events",
+      ["id", "pointer_event_id"],
+      ["context_id", "id"],
     )
 
   op.create_table(
@@ -382,11 +373,11 @@ def schema_downgrades() -> None:
   op.drop_table("mail_mappings")
   with op.batch_alter_table("contexts", schema=None) as batch_op:
     batch_op.drop_constraint(
-      "fk_contexts_pointer_event_id_context_events",
+      "fk_contexts_id_pointer_event_id_context_events",
       type_="foreignkey",
     )
     batch_op.drop_constraint(
-      "fk_contexts_id_pointer_event_id_context_events",
+      "fk_contexts_pointer_event_id_context_events",
       type_="foreignkey",
     )
 

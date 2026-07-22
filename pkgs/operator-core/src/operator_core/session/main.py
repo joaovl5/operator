@@ -10,7 +10,6 @@ from operator_core.events.transform import events_to_msgs
 from operator_core.session.agent import (
   AgentType,
   ToolDeps,
-  construct_out_type,
 )
 from operator_core.session.events import (
   AgentTurnEnd,
@@ -81,9 +80,15 @@ class SessionAgentManager:
   turn_end_ev: Event = Factory(Event)
   """Fired per-turn endings."""
 
+  _has_run: bool = field(init=False, default=False)
   _pointer: EventPointer | None = field(init=False, default=None)
   _model: Model | None = field(init=False, default=None)
   _agent: AgentType | None = field(init=False, default=None)
+
+  @property
+  def has_run(self) -> bool:
+    """Whether agent has started its loop at least once."""
+    return self._has_run
 
   def _get_model_from_event(
     self,
@@ -115,8 +120,7 @@ class SessionAgentManager:
     *,
     force_refresh: bool = False,
   ) -> Model:
-    """Returns cached Pydantic AI model, or fetches history events to
-    create one.
+    """Return cached model or fetch history events to create one.
 
     If `force_refresh` is set, will fetch history regardless of
     caching or not.
@@ -142,12 +146,10 @@ class SessionAgentManager:
     return Agent(
       model=await self._get_model(),
       deps_type=ToolDeps,
-      output_type=construct_out_type(),
     )
 
   async def _get_msg_history(self) -> list[ModelMessage]:
-    """Turn the current epoch into provider-safe Pydantic AI
-    messages."""
+    """Turn epoch into provider-safe Pydantic AI messages."""
     pointer = await self.get_pointer()
     events = await self.svc.event_svc.walk_up_to(
       event_id=pointer.event_id
@@ -195,8 +197,8 @@ class SessionAgentManager:
     self.db_obj = db_obj
 
   async def do_loop(self) -> EventPointer:
-    """Perform this agent's loop until a termination signal is
-    triggered."""
+    """Perform agent loop until termination signal is triggered."""
+    self._has_run = True
     self.loop_end_ev.clear()
     async with self.loop_lock:
       # For now, a "loop" is just a single turn.
@@ -363,7 +365,7 @@ class SessionManager:
     agent_id: str,
     stop_method: StopAgentMethod,
     anchor_pointer: EventPointer,
-  ) -> EventPointer:
+  ) -> EventPointer | None:
     """Trigger a stop for agent.
 
     Args:
@@ -374,11 +376,14 @@ class SessionManager:
                         for a downward search.
 
     Returns:
-        Pointer to last event from agent loop.
+        Pointer to last event from agent loop, or `None` if it has not
+        changed.
 
     """
     await self.refresh_agents()
     mgr = self._agent_mgrs[agent_id]
+    if not mgr.has_run:
+      return None
     match stop_method:
       case StopAgentMethod.KILL:
         if task := self._agent_loop_tasks.get(agent_id):
@@ -399,24 +404,40 @@ class SessionManager:
       raise ValueError(msg)
     return EventPointer(event_id=out.id, context_id=out.context_id)
 
+  async def get_agent_pointer(self, agent_id: str) -> EventPointer:
+    """Get `EventPointer` for that agent."""
+    await self.refresh_agents()
+    return await self._agent_mgrs[agent_id].get_pointer()
+
   async def add_user_message(
     self,
     agent_id: str,
-    parent_pointer: EventPointer,
     message: IncomingMessage,
+    parent_pointer: EventPointer | None = None,
     stop_method: StopAgentMethod = StopAgentMethod.WAIT_LOOP,
   ) -> None:
     """Adds a user message to an agent's context.
 
     This does not make the loop start/restart afterwards.
+
+    If `parent_pointer` is None, will get agent pointer by calling the
+    `get_agent_pointer` method.
     """
     # This must also handle cases where no events were made after
     # parent_pointer and thus must correctly detect, in that case,
     # that `last_ev_pointer` *is* the  parent_pointer.
-    last_ev_pointer = await self.trigger_stop(
-      agent_id=agent_id,
-      stop_method=stop_method,
-      anchor_pointer=parent_pointer,
+    parent_pointer = parent_pointer or (
+      await self.get_agent_pointer(agent_id)
+    )
+    last_ev_pointer = (
+      await self.trigger_stop(
+        agent_id=agent_id,
+        stop_method=stop_method,
+        anchor_pointer=parent_pointer,
+      )
+      # guards against `trigger_stop` "None" case, when agent has not
+      # yet ran
+      or parent_pointer
     )
     await self._agent_mgrs[agent_id].add_user_message(
       message=message,

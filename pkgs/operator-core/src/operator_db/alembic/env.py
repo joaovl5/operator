@@ -1,20 +1,15 @@
 import asyncio
-from functools import cache
 from typing import TYPE_CHECKING, Any, Literal
 
 from advanced_alchemy.alembic.commands import AlembicCommandConfig
 from alembic import context
 from alembic.autogenerate import rewriter
 
-from operator_db.connection.main import get_async_engine
 from operator_db.objects import Base
 from operator_db.objects.utils import PydanticJSON
-from operator_shared.settings.loader import load_operator_settings
 
 if TYPE_CHECKING:
   from sqlalchemy.engine import Connection
-
-  from operator_shared.settings.main import OperatorSettings
 
 config = context.config
 if not isinstance(config, AlembicCommandConfig):
@@ -44,9 +39,8 @@ def _render_item(
       return False
 
 
-@cache
-def _get_op_settings() -> OperatorSettings:
-  return load_operator_settings()
+def _get_database_url() -> str:
+  return config.db_url
 
 
 def _get_configure_kwargs() -> dict[str, Any]:
@@ -64,7 +58,7 @@ def _get_configure_kwargs() -> dict[str, Any]:
 
 def run_migrations_offline() -> None:
   """Run migrations in 'offline' mode."""
-  url = _get_op_settings().database.connection_string
+  url = _get_database_url()
   context.configure(
     url=url,
     literal_binds=True,
@@ -89,7 +83,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
   """Run migrations through an async engine for Alembic CLI usage."""
-  connectable = get_async_engine(_get_op_settings())
+  connectable = config.engine
 
   try:
     async with connectable.connect() as connection:

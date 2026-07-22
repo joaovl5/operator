@@ -1,8 +1,7 @@
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING
 
 from attrs import define
-from pydantic import BaseModel, Discriminator
-from pydantic_ai import Agent, ToolOutput
+from pydantic_ai import Agent
 
 if TYPE_CHECKING:
   from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,32 +19,4 @@ class ToolDeps:
   db_obj: SessionAgent
 
 
-class ChatOut(BaseModel):
-  """Send message to user."""
-
-  kind: Literal["chat"] = "chat"
-
-  message: str
-
-
-class AskOut(BaseModel):
-  """Ask user for clarification."""
-
-  kind: Literal["ask"] = "ask"
-
-  question: str
-
-
-type AgentOutput = Annotated[
-  ChatOut | AskOut,
-  Discriminator("kind"),
-]
-type AgentType = Agent[ToolDeps, AgentOutput]
-
-
-def construct_out_type() -> list[ToolOutput[AgentOutput]]:
-  """Gets properly created `ToolOutput` list."""
-  return [
-    ToolOutput(ChatOut, name="chat"),
-    ToolOutput(AskOut, name="ask"),
-  ]
+type AgentType = Agent[ToolDeps, str]

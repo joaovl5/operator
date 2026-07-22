@@ -192,7 +192,7 @@
       max-locals   = 10
 
 [tool.pytest.ini_options]
-  addopts        = "--color=yes --doctest-modules --exitfirst --import-mode=importlib --strict-config --strict-markers --verbosity=2"
+  addopts        = "--color=yes --doctest-modules --exitfirst --ignore=pkgs/operator-core/src/operator_db/alembic/env.py --import-mode=importlib --strict-config --strict-markers --verbosity=2"
   asyncio_mode   = "auto"
   filterwarnings = ["error", "ignore::DeprecationWarning"]
   python_files   = ["*.test.py", "test_*.py"]
