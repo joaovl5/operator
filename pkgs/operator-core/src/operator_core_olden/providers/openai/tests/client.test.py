@@ -103,8 +103,7 @@ def make_oauth_store(tmp_path: Path) -> OpenAIOAuthStore:
     pytest.param(None, None, id="account-missing"),
   ],
 )
-def \
-test_build_chatgpt_oauth_client_sets_codex_base_url_and_public_headers(
+def test_build_chatgpt_oauth_client_sets_codex_base_url_and_public_headers(
   tmp_path: Path,
   account_id: str | None,
   expected_header: str | None,
@@ -128,8 +127,7 @@ test_build_chatgpt_oauth_client_sets_codex_base_url_and_public_headers(
     )
 
 
-def \
-test_oauth_manager_refreshes_expired_credentials_and_persists_them(
+def test_oauth_manager_refreshes_expired_credentials_and_persists_them(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
@@ -212,8 +210,7 @@ def test_oauth_manager_serializes_refresh_across_concurrent_callers(
   assert refresh_calls == 1
 
 
-def \
-test_oauth_manager_serializes_refresh_across_managers_sharing_one_store(
+def test_oauth_manager_serializes_refresh_across_managers_sharing_one_store(
   monkeypatch: pytest.MonkeyPatch,
   tmp_path: Path,
 ) -> None:
@@ -427,8 +424,9 @@ def test_newer_credentials_win_over_stale_refresh_results(
   assert persisted.refresh_token == RELOGIN_REFRESH_TOKEN
 
 
-def test_oauth_responses_settings_return_validated_serializable_model(
-) -> None:
+def test_oauth_responses_settings_return_validated_serializable_model() -> (
+  None
+):
   """OAuth responses defaults are a serializable model, not an
   ad-hoc typed dict."""
   signature = inspect.signature(oauth_responses_settings)
@@ -453,8 +451,7 @@ def test_oauth_responses_settings_return_validated_serializable_model(
     )
 
 
-def \
-test_openai_oauth_model_config_and_provider_build_responses_models(
+def test_openai_oauth_model_config_and_provider_build_responses_models(
   tmp_path: Path,
 ) -> None:
   """OAuth provider uses a validated OAuth config boundary to
@@ -509,8 +506,9 @@ def test_openai_and_oauth_providers_build_public_model_types(
   assert isinstance(oauth_model, OpenAIResponsesModel)
 
 
-def test_public_openai_client_helpers_match_workspace_api_conventions(
-) -> None:
+def test_public_openai_client_helpers_match_workspace_api_conventions() -> (
+  None
+):
   """Public provider helpers keep keyword-only arguments and real
   docstrings."""
   signature = inspect.signature(get_openai_client)

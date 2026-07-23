@@ -59,9 +59,7 @@ async def test_forward_streaming_events_accepts_pydantic_ai_api() -> (
   assert forwarded_events == []
 
 
-def test_without_replayed_prefix_strips_first_prompt_replay() -> (
-  None
-):
+def test_without_replayed_prefix_strips_first_prompt_replay() -> None:
   """Provider-owned prompt metadata does not make persisted prompts
   new again."""
   response = OperatorResponseMessage(

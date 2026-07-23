@@ -333,9 +333,9 @@ def test_token_requests_use_httpx_form_posts(
   )
 
 
-def \
-test_token_response_to_credentials_preserves_previous_refresh_token(
-) -> None:
+def test_token_response_to_credentials_preserves_previous_refresh_token() -> (
+  None
+):
   """Token responses keep the existing refresh token when omitted."""
   previous = OpenAIOAuthCredentials(
     access_token="old-access-token",  # noqa: S106
@@ -355,9 +355,9 @@ test_token_response_to_credentials_preserves_previous_refresh_token(
   assert credentials.expires_at_ms == EXPECTED_EXPIRES_AT_MS
 
 
-def \
-test_token_response_to_credentials_preserves_previous_account_id_on_refresh_without_id_token(
-) -> None:
+def test_token_response_to_credentials_preserves_previous_account_id_on_refresh_without_id_token() -> (
+  None
+):
   """Refresh responses preserve account_id when no new id_token is
   returned."""
   previous = OpenAIOAuthCredentials(
@@ -430,8 +430,7 @@ def test_token_operations_map_auth_failures_to_relogin_errors(
     ),
   ],
 )
-def \
-test_exchange_authorization_code_surfaces_protocol_and_auth_failures(
+def test_exchange_authorization_code_surfaces_protocol_and_auth_failures(
   response: httpx.Response,
   match: str,
 ) -> None:

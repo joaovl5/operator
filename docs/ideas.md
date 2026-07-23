@@ -97,6 +97,8 @@
   - Poll tool for waiting on pending tasks/jobs
 - Pending tasks jobs may have special visibility/components
   - Time-bound (timer/alarm) may have fixed component
+- Ask tool can have side-chat like a /btw command for chatting about
+  questions further before answering them
 
 Technical/lower-level:
 

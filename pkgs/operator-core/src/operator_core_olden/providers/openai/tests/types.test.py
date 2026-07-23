@@ -62,8 +62,9 @@ def test_openai_oauth_model_settings_are_strictly_oauth_safe() -> (
     )
 
 
-def test_openai_oauth_model_config_rejects_unsupported_model_names(
-) -> None:
+def test_openai_oauth_model_config_rejects_unsupported_model_names() -> (
+  None
+):
   """OAuth model configs only admit the validated codex model name."""
   config = OpenAIOAuthModelConfig.model_validate(
     {"name": "gpt-5.3-codex"}
@@ -76,8 +77,9 @@ def test_openai_oauth_model_config_rejects_unsupported_model_names(
     _ = OpenAIOAuthModelConfig.model_validate({"name": "gpt-4.1"})
 
 
-def test_provider_model_config_accepts_openai_settings_subclasses(
-) -> None:
+def test_provider_model_config_accepts_openai_settings_subclasses() -> (
+  None
+):
   """Provider-agnostic configs still carry OpenAI settings
   instances."""
   config = ModelConfig(

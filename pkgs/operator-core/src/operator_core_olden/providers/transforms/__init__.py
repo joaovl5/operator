@@ -13,8 +13,7 @@ from operator_core_olden.providers.transforms.main import (
 from operator_core_olden.providers.transforms.pydantic_ai import (
   PydanticAIMessageTransform,
 )
-from operator_core_olden.providers.transforms.\
-  pydantic_ai_streaming import (
+from operator_core_olden.providers.transforms.pydantic_ai_streaming import (
   PydanticAIStreamTransform,
 )
 
